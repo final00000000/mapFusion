@@ -1,0 +1,2197 @@
+public final class com/mapfusion/api/MapConfig {
+	public fun <init> (Lcom/mapfusion/api/capability/Provider;Ljava/lang/String;ZZLjava/util/Map;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/capability/Provider;Ljava/lang/String;ZZLjava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/capability/Provider;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/util/Map;
+	public final fun copy (Lcom/mapfusion/api/capability/Provider;Ljava/lang/String;ZZLjava/util/Map;)Lcom/mapfusion/api/MapConfig;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/MapConfig;Lcom/mapfusion/api/capability/Provider;Ljava/lang/String;ZZLjava/util/Map;ILjava/lang/Object;)Lcom/mapfusion/api/MapConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApiKey ()Ljava/lang/String;
+	public final fun getDebug ()Z
+	public final fun getEnablePrivacyCompliance ()Z
+	public final fun getExtras ()Ljava/util/Map;
+	public final fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+	public fun hashCode ()I
+	public final fun requirePrivacyConsent ()V
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/MapProvider {
+	public abstract fun capabilities ()Ljava/util/Set;
+	public fun createMapController (Landroid/content/Context;)Lcom/mapfusion/api/capability/MapController;
+	public abstract fun destroy ()V
+	public fun districtSearcher ()Lcom/mapfusion/api/capability/DistrictSearcher;
+	public abstract fun geocoder ()Lcom/mapfusion/api/capability/Geocoder;
+	public abstract fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+	public abstract fun locationClient ()Lcom/mapfusion/api/capability/LocationClient;
+	public abstract fun mapController (Ljava/lang/Object;)Lcom/mapfusion/api/capability/MapController;
+	public abstract fun navigator ()Lcom/mapfusion/api/capability/Navigator;
+	public abstract fun poiSearcher ()Lcom/mapfusion/api/capability/PoiSearcher;
+	public abstract fun rawProvider ()Ljava/lang/Object;
+	public abstract fun routePlanner ()Lcom/mapfusion/api/capability/RoutePlanner;
+	public fun supports (Lcom/mapfusion/api/capability/Capability;)Z
+	public fun weatherService ()Lcom/mapfusion/api/capability/WeatherService;
+}
+
+public final class com/mapfusion/api/MapProvider$DefaultImpls {
+	public static fun createMapController (Lcom/mapfusion/api/MapProvider;Landroid/content/Context;)Lcom/mapfusion/api/capability/MapController;
+	public static fun districtSearcher (Lcom/mapfusion/api/MapProvider;)Lcom/mapfusion/api/capability/DistrictSearcher;
+	public static fun supports (Lcom/mapfusion/api/MapProvider;Lcom/mapfusion/api/capability/Capability;)Z
+	public static fun weatherService (Lcom/mapfusion/api/MapProvider;)Lcom/mapfusion/api/capability/WeatherService;
+}
+
+public abstract interface class com/mapfusion/api/MapProviderFactory {
+	public abstract fun create (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/api/MapProvider;
+	public abstract fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+	public fun updatePrivacyConsent (Landroid/content/Context;Z)V
+}
+
+public final class com/mapfusion/api/MapProviderFactory$DefaultImpls {
+	public static fun updatePrivacyConsent (Lcom/mapfusion/api/MapProviderFactory;Landroid/content/Context;Z)V
+}
+
+public final class com/mapfusion/api/PrivacyConsentRequiredException : java/lang/IllegalStateException {
+	public fun <init> (Lcom/mapfusion/api/capability/Provider;)V
+	public final fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+}
+
+public final class com/mapfusion/api/async/AndroidMainThreadExecutor : java/util/concurrent/Executor {
+	public static final field INSTANCE Lcom/mapfusion/api/async/AndroidMainThreadExecutor;
+	public fun execute (Ljava/lang/Runnable;)V
+}
+
+public final class com/mapfusion/api/async/AsyncRequest : com/mapfusion/api/model/RequestHandle {
+	public fun cancel ()Z
+	public final fun complete (Lcom/mapfusion/api/model/MapResult;)Z
+	public final fun dispose ()Z
+	public final fun failure (Lcom/mapfusion/api/model/MapError;)Z
+	public fun isCancelled ()Z
+	public fun isDone ()Z
+	public final fun success (Ljava/lang/Object;)Z
+}
+
+public final class com/mapfusion/api/async/AsyncRuntime {
+	public static final field Companion Lcom/mapfusion/api/async/AsyncRuntime$Companion;
+	public static final field DEFAULT Lcom/mapfusion/api/async/AsyncRuntime;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/concurrent/Executor;)V
+	public fun <init> (Ljava/util/concurrent/Executor;Lcom/mapfusion/api/async/TimeoutScheduler;)V
+	public synthetic fun <init> (Ljava/util/concurrent/Executor;Lcom/mapfusion/api/async/TimeoutScheduler;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun createRequest (Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/async/AsyncRequest;
+	public final fun createRequest (Lcom/mapfusion/api/model/MapCallback;Lcom/mapfusion/api/model/AsyncCallOptions;)Lcom/mapfusion/api/async/AsyncRequest;
+	public final fun createRequest (Lcom/mapfusion/api/model/MapCallback;Lcom/mapfusion/api/model/AsyncCallOptions;Ljava/lang/Runnable;)Lcom/mapfusion/api/async/AsyncRequest;
+	public static synthetic fun createRequest$default (Lcom/mapfusion/api/async/AsyncRuntime;Lcom/mapfusion/api/model/MapCallback;Lcom/mapfusion/api/model/AsyncCallOptions;Ljava/lang/Runnable;ILjava/lang/Object;)Lcom/mapfusion/api/async/AsyncRequest;
+}
+
+public final class com/mapfusion/api/async/AsyncRuntime$Companion {
+}
+
+public final class com/mapfusion/api/async/RequestScope : java/lang/AutoCloseable {
+	public fun <init> ()V
+	public final fun cancel (Ljava/lang/String;)Z
+	public final fun cancelAll ()V
+	public fun close ()V
+	public final fun replace (Ljava/lang/String;Lcom/mapfusion/api/model/RequestHandle;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/async/SharedTimeoutScheduler : com/mapfusion/api/async/TimeoutScheduler {
+	public static final field INSTANCE Lcom/mapfusion/api/async/SharedTimeoutScheduler;
+	public fun schedule (JLjava/lang/Runnable;)Lcom/mapfusion/api/async/TimeoutHandle;
+}
+
+public abstract interface class com/mapfusion/api/async/TimeoutHandle {
+	public abstract fun cancel ()Z
+}
+
+public abstract interface class com/mapfusion/api/async/TimeoutScheduler {
+	public abstract fun schedule (JLjava/lang/Runnable;)Lcom/mapfusion/api/async/TimeoutHandle;
+}
+
+public final class com/mapfusion/api/capability/Capability : java/lang/Enum {
+	public static final field DISTRICT_SEARCH Lcom/mapfusion/api/capability/Capability;
+	public static final field GEOCODER Lcom/mapfusion/api/capability/Capability;
+	public static final field LOCATION Lcom/mapfusion/api/capability/Capability;
+	public static final field MAP_CONTROLLER Lcom/mapfusion/api/capability/Capability;
+	public static final field NAVIGATION Lcom/mapfusion/api/capability/Capability;
+	public static final field POI_SEARCH Lcom/mapfusion/api/capability/Capability;
+	public static final field ROUTE_PLANNING Lcom/mapfusion/api/capability/Capability;
+	public static final field WEATHER Lcom/mapfusion/api/capability/Capability;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/capability/Capability;
+	public static fun values ()[Lcom/mapfusion/api/capability/Capability;
+}
+
+public abstract interface class com/mapfusion/api/capability/DistrictSearcher {
+	public abstract fun destroy ()V
+	public abstract fun search (Lcom/mapfusion/api/model/DistrictSearchRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun search (Lcom/mapfusion/api/model/DistrictSearchRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/capability/DistrictSearcher$DefaultImpls {
+	public static fun search (Lcom/mapfusion/api/capability/DistrictSearcher;Lcom/mapfusion/api/model/DistrictSearchRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public abstract interface class com/mapfusion/api/capability/EmbeddedNavigator : java/lang/AutoCloseable {
+	public fun close ()V
+	public abstract fun destroy ()V
+	public abstract fun getState ()Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public abstract fun onPause ()V
+	public abstract fun onResume ()V
+	public abstract fun pause ()Lcom/mapfusion/api/model/MapResult;
+	public abstract fun resume ()Lcom/mapfusion/api/model/MapResult;
+	public abstract fun start (Lcom/mapfusion/api/model/EmbeddedNavigationRequest;Lcom/mapfusion/api/model/EmbeddedNavigationListener;)Lcom/mapfusion/api/model/MapResult;
+	public abstract fun stop ()Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/api/capability/EmbeddedNavigator$DefaultImpls {
+	public static fun close (Lcom/mapfusion/api/capability/EmbeddedNavigator;)V
+}
+
+public abstract interface class com/mapfusion/api/capability/Geocoder {
+	public abstract fun destroy ()V
+	public fun geocode (Lcom/mapfusion/api/model/GeocodeRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun geocode (Lcom/mapfusion/api/model/GeocodeRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun geocode (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun geocode (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun geocode$default (Lcom/mapfusion/api/capability/Geocoder;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun geocode$default (Lcom/mapfusion/api/capability/Geocoder;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun reverseGeocode (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun reverseGeocode (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun reverseGeocode (Lcom/mapfusion/api/model/ReverseGeocodeRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun reverseGeocode (Lcom/mapfusion/api/model/ReverseGeocodeRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/capability/Geocoder$DefaultImpls {
+	public static fun geocode (Lcom/mapfusion/api/capability/Geocoder;Lcom/mapfusion/api/model/GeocodeRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun geocode (Lcom/mapfusion/api/capability/Geocoder;Lcom/mapfusion/api/model/GeocodeRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun geocode (Lcom/mapfusion/api/capability/Geocoder;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun geocode$default (Lcom/mapfusion/api/capability/Geocoder;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun geocode$default (Lcom/mapfusion/api/capability/Geocoder;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun reverseGeocode (Lcom/mapfusion/api/capability/Geocoder;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun reverseGeocode (Lcom/mapfusion/api/capability/Geocoder;Lcom/mapfusion/api/model/ReverseGeocodeRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun reverseGeocode (Lcom/mapfusion/api/capability/Geocoder;Lcom/mapfusion/api/model/ReverseGeocodeRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public abstract interface class com/mapfusion/api/capability/LocationClient {
+	public abstract fun destroy ()V
+	public abstract fun requestSingleLocation (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun requestSingleLocation (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun requestSingleLocation$default (Lcom/mapfusion/api/capability/LocationClient;Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun startContinuousLocation (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun startContinuousLocation (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun stopContinuousLocation ()V
+}
+
+public final class com/mapfusion/api/capability/LocationClient$DefaultImpls {
+	public static fun requestSingleLocation (Lcom/mapfusion/api/capability/LocationClient;Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static synthetic fun requestSingleLocation$default (Lcom/mapfusion/api/capability/LocationClient;Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;ILjava/lang/Object;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun startContinuousLocation (Lcom/mapfusion/api/capability/LocationClient;Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public abstract interface class com/mapfusion/api/capability/LocationDisplay : java/lang/AutoCloseable {
+	public fun close ()V
+	public abstract fun destroy ()V
+	public abstract fun getLastLocation ()Lcom/mapfusion/api/model/MapLocation;
+	public abstract fun getState ()Lcom/mapfusion/api/model/LocationDisplayState;
+	public abstract fun onPause ()V
+	public abstract fun onResume ()V
+	public abstract fun pause ()Lcom/mapfusion/api/model/MapResult;
+	public abstract fun resume ()Lcom/mapfusion/api/model/MapResult;
+	public abstract fun start (Lcom/mapfusion/api/model/LocationDisplayOptions;Lcom/mapfusion/api/model/LocationDisplayListener;)Lcom/mapfusion/api/model/MapResult;
+	public static synthetic fun start$default (Lcom/mapfusion/api/capability/LocationDisplay;Lcom/mapfusion/api/model/LocationDisplayOptions;Lcom/mapfusion/api/model/LocationDisplayListener;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+	public abstract fun stop ()Lcom/mapfusion/api/model/MapResult;
+	public abstract fun updateStyle (Lcom/mapfusion/api/model/LocationDisplayStyle;)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/api/capability/LocationDisplay$DefaultImpls {
+	public static fun close (Lcom/mapfusion/api/capability/LocationDisplay;)V
+	public static synthetic fun start$default (Lcom/mapfusion/api/capability/LocationDisplay;Lcom/mapfusion/api/model/LocationDisplayOptions;Lcom/mapfusion/api/model/LocationDisplayListener;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+}
+
+public abstract interface class com/mapfusion/api/capability/MapController {
+	public abstract fun addCircle (Lcom/mapfusion/api/model/CircleOptions;)Lcom/mapfusion/api/model/MapCircle;
+	public abstract fun addGroundOverlay (Lcom/mapfusion/api/model/GroundOverlayOptions;)Lcom/mapfusion/api/model/MapGroundOverlay;
+	public abstract fun addHeatMap (Lcom/mapfusion/api/model/HeatMapOptions;)Lcom/mapfusion/api/model/MapHeatMap;
+	public abstract fun addMarker (Lcom/mapfusion/api/model/MarkerOptions;)Lcom/mapfusion/api/model/MapMarker;
+	public fun addMultiPointOverlay (Lcom/mapfusion/api/model/MultiPointOverlayOptions;)Lcom/mapfusion/api/model/MapMultiPointOverlay;
+	public abstract fun addPolygon (Lcom/mapfusion/api/model/PolygonOptions;)Lcom/mapfusion/api/model/MapPolygon;
+	public abstract fun addPolyline (Lcom/mapfusion/api/model/PolylineOptions;)Lcom/mapfusion/api/model/MapPolyline;
+	public fun addRoute (Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public fun addRoute (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static synthetic fun addRoute$default (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static synthetic fun addRoute$default (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public abstract fun addText (Lcom/mapfusion/api/model/TextOverlayOptions;)Lcom/mapfusion/api/model/MapTextOverlay;
+	public abstract fun addTileOverlay (Lcom/mapfusion/api/model/TileOverlayOptions;)Lcom/mapfusion/api/model/MapTileOverlay;
+	public fun applyMapType (Lcom/mapfusion/api/model/MapType;)Lcom/mapfusion/api/model/MapResult;
+	public abstract fun clearMarkers ()V
+	public abstract fun clearOverlays ()V
+	public fun fitPoints (Ljava/util/List;IFZI)V
+	public static synthetic fun fitPoints$default (Lcom/mapfusion/api/capability/MapController;Ljava/util/List;IFZIILjava/lang/Object;)V
+	public abstract fun getCameraPosition ()Lcom/mapfusion/api/model/CameraPosition;
+	public abstract fun getMapType ()Lcom/mapfusion/api/model/MapType;
+	public abstract fun getView ()Landroid/view/View;
+	public abstract fun moveCamera (Lcom/mapfusion/api/model/CameraUpdate;)V
+	public abstract fun onCreate (Landroid/os/Bundle;)V
+	public abstract fun onDestroy ()V
+	public abstract fun onLowMemory ()V
+	public abstract fun onPause ()V
+	public abstract fun onResume ()V
+	public abstract fun onSaveInstanceState (Landroid/os/Bundle;)V
+	public abstract fun setBuildingsEnabled (Z)V
+	public abstract fun setCameraBounds (Lcom/mapfusion/api/model/LatLngBounds;)V
+	public abstract fun setIndoorEnabled (Z)V
+	public abstract fun setMapPoiEnabled (Z)V
+	public abstract fun setMapType (Lcom/mapfusion/api/model/MapType;)V
+	public abstract fun setMyLocationEnabled (Z)V
+	public abstract fun setOnCameraIdleListener (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun setOnMapClickListener (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun setOnMapLoadedListener (Lkotlin/jvm/functions/Function0;)V
+	public abstract fun setOnMapLongClickListener (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun setOnMarkerClickListener (Lkotlin/jvm/functions/Function1;)V
+	public fun setOnMultiPointClickListener (Lkotlin/jvm/functions/Function2;)V
+	public abstract fun setOnOverlayClickListener (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun setTrafficEnabled (Z)V
+	public abstract fun setUiOptions (Lcom/mapfusion/api/model/MapUiOptions;)V
+	public abstract fun setZoomControlsEnabled (Z)V
+	public abstract fun setZoomRange (FF)V
+	public abstract fun snapshot (Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun snapshot (Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun supportedMapTypes ()Ljava/util/Set;
+	public fun supportsMapType (Lcom/mapfusion/api/model/MapType;)Z
+}
+
+public final class com/mapfusion/api/capability/MapController$DefaultImpls {
+	public static fun addMultiPointOverlay (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/MultiPointOverlayOptions;)Lcom/mapfusion/api/model/MapMultiPointOverlay;
+	public static fun addRoute (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static fun addRoute (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static synthetic fun addRoute$default (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static synthetic fun addRoute$default (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/RoutePath;Lcom/mapfusion/api/model/RouteOverlayOptions;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapRouteOverlay;
+	public static fun applyMapType (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/MapType;)Lcom/mapfusion/api/model/MapResult;
+	public static fun fitPoints (Lcom/mapfusion/api/capability/MapController;Ljava/util/List;IFZI)V
+	public static synthetic fun fitPoints$default (Lcom/mapfusion/api/capability/MapController;Ljava/util/List;IFZIILjava/lang/Object;)V
+	public static fun setOnMultiPointClickListener (Lcom/mapfusion/api/capability/MapController;Lkotlin/jvm/functions/Function2;)V
+	public static fun snapshot (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun supportedMapTypes (Lcom/mapfusion/api/capability/MapController;)Ljava/util/Set;
+	public static fun supportsMapType (Lcom/mapfusion/api/capability/MapController;Lcom/mapfusion/api/model/MapType;)Z
+}
+
+public abstract interface class com/mapfusion/api/capability/Navigator {
+	public abstract fun startNavigation (Landroid/content/Context;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/TravelMode;)Lcom/mapfusion/api/model/MapResult;
+	public static synthetic fun startNavigation$default (Lcom/mapfusion/api/capability/Navigator;Landroid/content/Context;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/TravelMode;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+	public fun supportedModes ()Ljava/util/Set;
+	public fun supportsMode (Lcom/mapfusion/api/model/TravelMode;)Z
+}
+
+public final class com/mapfusion/api/capability/Navigator$DefaultImpls {
+	public static synthetic fun startNavigation$default (Lcom/mapfusion/api/capability/Navigator;Landroid/content/Context;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/TravelMode;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+	public static fun supportedModes (Lcom/mapfusion/api/capability/Navigator;)Ljava/util/Set;
+	public static fun supportsMode (Lcom/mapfusion/api/capability/Navigator;Lcom/mapfusion/api/model/TravelMode;)Z
+}
+
+public abstract interface class com/mapfusion/api/capability/PoiSearcher {
+	public abstract fun destroy ()V
+	public abstract fun search (Lcom/mapfusion/api/model/PoiSearchRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun search (Lcom/mapfusion/api/model/PoiSearchRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun searchDetail (Ljava/lang/String;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun searchDetail (Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun suggest (Lcom/mapfusion/api/model/PoiSuggestionRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun suggest (Lcom/mapfusion/api/model/PoiSuggestionRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/capability/PoiSearcher$DefaultImpls {
+	public static fun search (Lcom/mapfusion/api/capability/PoiSearcher;Lcom/mapfusion/api/model/PoiSearchRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun searchDetail (Lcom/mapfusion/api/capability/PoiSearcher;Ljava/lang/String;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun suggest (Lcom/mapfusion/api/capability/PoiSearcher;Lcom/mapfusion/api/model/PoiSuggestionRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/capability/Provider : java/lang/Enum {
+	public static final field AMAP Lcom/mapfusion/api/capability/Provider;
+	public static final field BAIDU Lcom/mapfusion/api/capability/Provider;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/capability/Provider;
+	public static fun values ()[Lcom/mapfusion/api/capability/Provider;
+}
+
+public abstract interface class com/mapfusion/api/capability/RoutePlanner {
+	public abstract fun destroy ()V
+	public abstract fun plan (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun plan (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun supportedModes ()Ljava/util/Set;
+	public fun supportsMode (Lcom/mapfusion/api/model/TravelMode;)Z
+}
+
+public final class com/mapfusion/api/capability/RoutePlanner$DefaultImpls {
+	public static fun plan (Lcom/mapfusion/api/capability/RoutePlanner;Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun supportedModes (Lcom/mapfusion/api/capability/RoutePlanner;)Ljava/util/Set;
+	public static fun supportsMode (Lcom/mapfusion/api/capability/RoutePlanner;Lcom/mapfusion/api/model/TravelMode;)Z
+}
+
+public abstract interface class com/mapfusion/api/capability/TrackListener {
+	public fun onError (Lcom/mapfusion/api/model/MapError;)V
+	public fun onPointAdded (Lcom/mapfusion/api/model/TrackSnapshot;)V
+	public fun onStateChanged (Lcom/mapfusion/api/model/TrackSnapshot;)V
+}
+
+public final class com/mapfusion/api/capability/TrackListener$DefaultImpls {
+	public static fun onError (Lcom/mapfusion/api/capability/TrackListener;Lcom/mapfusion/api/model/MapError;)V
+	public static fun onPointAdded (Lcom/mapfusion/api/capability/TrackListener;Lcom/mapfusion/api/model/TrackSnapshot;)V
+	public static fun onStateChanged (Lcom/mapfusion/api/capability/TrackListener;Lcom/mapfusion/api/model/TrackSnapshot;)V
+}
+
+public abstract interface class com/mapfusion/api/capability/TrackRecorder {
+	public abstract fun clear ()V
+	public abstract fun destroy ()V
+	public abstract fun getState ()Lcom/mapfusion/api/capability/TrackState;
+	public abstract fun pause ()V
+	public abstract fun resume ()V
+	public abstract fun snapshot ()Lcom/mapfusion/api/model/TrackSnapshot;
+	public abstract fun start (Lcom/mapfusion/api/model/TrackOptions;Lcom/mapfusion/api/capability/TrackListener;)V
+	public static synthetic fun start$default (Lcom/mapfusion/api/capability/TrackRecorder;Lcom/mapfusion/api/model/TrackOptions;Lcom/mapfusion/api/capability/TrackListener;ILjava/lang/Object;)V
+	public abstract fun stop ()Lcom/mapfusion/api/model/TrackSnapshot;
+}
+
+public final class com/mapfusion/api/capability/TrackRecorder$DefaultImpls {
+	public static synthetic fun start$default (Lcom/mapfusion/api/capability/TrackRecorder;Lcom/mapfusion/api/model/TrackOptions;Lcom/mapfusion/api/capability/TrackListener;ILjava/lang/Object;)V
+}
+
+public final class com/mapfusion/api/capability/TrackState : java/lang/Enum {
+	public static final field IDLE Lcom/mapfusion/api/capability/TrackState;
+	public static final field PAUSED Lcom/mapfusion/api/capability/TrackState;
+	public static final field RECORDING Lcom/mapfusion/api/capability/TrackState;
+	public static final field STOPPED Lcom/mapfusion/api/capability/TrackState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/capability/TrackState;
+	public static fun values ()[Lcom/mapfusion/api/capability/TrackState;
+}
+
+public abstract interface class com/mapfusion/api/capability/WeatherService {
+	public abstract fun current (Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun current (Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public abstract fun destroy ()V
+	public abstract fun forecast (Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/AsyncCallOptions;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public fun forecast (Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public final class com/mapfusion/api/capability/WeatherService$DefaultImpls {
+	public static fun current (Lcom/mapfusion/api/capability/WeatherService;Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+	public static fun forecast (Lcom/mapfusion/api/capability/WeatherService;Lcom/mapfusion/api/model/WeatherRequest;Lcom/mapfusion/api/model/MapCallback;)Lcom/mapfusion/api/model/RequestHandle;
+}
+
+public abstract interface class com/mapfusion/api/coordinate/CoordinateConverter {
+	public abstract fun convert (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/CoordType;)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/api/coordinate/DefaultCoordinateConverter : com/mapfusion/api/coordinate/CoordinateConverter {
+	public static final field INSTANCE Lcom/mapfusion/api/coordinate/DefaultCoordinateConverter;
+	public fun convert (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/CoordType;)Lcom/mapfusion/api/model/MapResult;
+	public final fun convertAll (Ljava/lang/Iterable;Lcom/mapfusion/api/model/CoordType;)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/api/model/AsyncCallOptions {
+	public static final field Companion Lcom/mapfusion/api/model/AsyncCallOptions$Companion;
+	public static final field DEFAULT_TIMEOUT_MILLIS J
+	public fun <init> ()V
+	public fun <init> (JLjava/util/concurrent/Executor;)V
+	public synthetic fun <init> (JLjava/util/concurrent/Executor;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()J
+	public final fun component2 ()Ljava/util/concurrent/Executor;
+	public final fun copy (JLjava/util/concurrent/Executor;)Lcom/mapfusion/api/model/AsyncCallOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/AsyncCallOptions;JLjava/util/concurrent/Executor;ILjava/lang/Object;)Lcom/mapfusion/api/model/AsyncCallOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCallbackExecutor ()Ljava/util/concurrent/Executor;
+	public final fun getTimeoutMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/AsyncCallOptions$Companion {
+}
+
+public final class com/mapfusion/api/model/CameraPosition {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;FFF)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;FFFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;FFF)Lcom/mapfusion/api/model/CameraPosition;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/CameraPosition;Lcom/mapfusion/api/model/LatLng;FFFILjava/lang/Object;)Lcom/mapfusion/api/model/CameraPosition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBearing ()F
+	public final fun getTarget ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getTilt ()F
+	public final fun getZoom ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/CameraUpdate {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Lcom/mapfusion/api/model/LatLngBounds;IZI)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Lcom/mapfusion/api/model/LatLngBounds;IZIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()Ljava/lang/Float;
+	public final fun component3 ()Ljava/lang/Float;
+	public final fun component4 ()Ljava/lang/Float;
+	public final fun component5 ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun component6 ()I
+	public final fun component7 ()Z
+	public final fun component8 ()I
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Lcom/mapfusion/api/model/LatLngBounds;IZI)Lcom/mapfusion/api/model/CameraUpdate;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/CameraUpdate;Lcom/mapfusion/api/model/LatLng;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Lcom/mapfusion/api/model/LatLngBounds;IZIILjava/lang/Object;)Lcom/mapfusion/api/model/CameraUpdate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimated ()Z
+	public final fun getBearing ()Ljava/lang/Float;
+	public final fun getBounds ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun getDurationMs ()I
+	public final fun getPaddingPixels ()I
+	public final fun getTarget ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getTilt ()Ljava/lang/Float;
+	public final fun getZoom ()Ljava/lang/Float;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/CircleOptions {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;DFIIZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;DFIIZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()D
+	public final fun component3 ()F
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()F
+	public final fun component9 ()Ljava/lang/Object;
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;DFIIZZFLjava/lang/Object;)Lcom/mapfusion/api/model/CircleOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/CircleOptions;Lcom/mapfusion/api/model/LatLng;DFIIZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/CircleOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getClickable ()Z
+	public final fun getFillColor ()I
+	public final fun getRadiusMeters ()D
+	public final fun getStrokeColor ()I
+	public final fun getStrokeWidth ()F
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/CoordType : java/lang/Enum {
+	public static final field BD09 Lcom/mapfusion/api/model/CoordType;
+	public static final field GCJ02 Lcom/mapfusion/api/model/CoordType;
+	public static final field UNKNOWN Lcom/mapfusion/api/model/CoordType;
+	public static final field WGS84 Lcom/mapfusion/api/model/CoordType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/CoordType;
+	public static fun values ()[Lcom/mapfusion/api/model/CoordType;
+}
+
+public final class com/mapfusion/api/model/DistrictInfo {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/util/List;)Lcom/mapfusion/api/model/DistrictInfo;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/DistrictInfo;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/DistrictInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdCode ()Ljava/lang/String;
+	public final fun getBoundaries ()Ljava/util/List;
+	public final fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getChildren ()Ljava/util/List;
+	public final fun getCityCode ()Ljava/lang/String;
+	public final fun getLevel ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/DistrictSearchRequest {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZI)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZI)Lcom/mapfusion/api/model/DistrictSearchRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/DistrictSearchRequest;Ljava/lang/String;Ljava/lang/String;ZIILjava/lang/Object;)Lcom/mapfusion/api/model/DistrictSearchRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getKeyword ()Ljava/lang/String;
+	public final fun getShowBoundary ()Z
+	public final fun getSubDistrictLevel ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/DistrictSearchResult {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/mapfusion/api/model/DistrictSearchResult;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/DistrictSearchResult;Ljava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/DistrictSearchResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDistricts ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class com/mapfusion/api/model/EmbeddedNavigationEvent {
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$Arrived : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/EmbeddedNavigationProgress;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public final fun copy (Lcom/mapfusion/api/model/EmbeddedNavigationProgress;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Arrived;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Arrived;Lcom/mapfusion/api/model/EmbeddedNavigationProgress;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Arrived;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getProgress ()Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$Error : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/MapError;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapError;
+	public final fun copy (Lcom/mapfusion/api/model/MapError;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Error;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Error;Lcom/mapfusion/api/model/MapError;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Error;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lcom/mapfusion/api/model/MapError;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$Progress : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/EmbeddedNavigationProgress;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public final fun copy (Lcom/mapfusion/api/model/EmbeddedNavigationProgress;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Progress;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Progress;Lcom/mapfusion/api/model/EmbeddedNavigationProgress;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$Progress;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$RerouteStarted : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/MapLocation;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun copy (Lcom/mapfusion/api/model/MapLocation;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RerouteStarted;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RerouteStarted;Lcom/mapfusion/api/model/MapLocation;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RerouteStarted;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/mapfusion/api/model/MapLocation;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$RouteReady : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/RouteResult;ILcom/mapfusion/api/model/RoutePath;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/RouteResult;
+	public final fun component2 ()I
+	public final fun component3 ()Lcom/mapfusion/api/model/RoutePath;
+	public final fun copy (Lcom/mapfusion/api/model/RouteResult;ILcom/mapfusion/api/model/RoutePath;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RouteReady;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RouteReady;Lcom/mapfusion/api/model/RouteResult;ILcom/mapfusion/api/model/RoutePath;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$RouteReady;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getResult ()Lcom/mapfusion/api/model/RouteResult;
+	public final fun getSelectedPath ()Lcom/mapfusion/api/model/RoutePath;
+	public final fun getSelectedPathIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationEvent$StateChanged : com/mapfusion/api/model/EmbeddedNavigationEvent {
+	public fun <init> (Lcom/mapfusion/api/model/EmbeddedNavigationState;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public final fun copy (Lcom/mapfusion/api/model/EmbeddedNavigationState;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$StateChanged;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationEvent$StateChanged;Lcom/mapfusion/api/model/EmbeddedNavigationState;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationEvent$StateChanged;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getState ()Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/EmbeddedNavigationListener {
+	public abstract fun onEvent (Lcom/mapfusion/api/model/EmbeddedNavigationEvent;)V
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationMode : java/lang/Enum {
+	public static final field REAL Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public static final field SIMULATED Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public static fun values ()[Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LocationOptions;ILcom/mapfusion/api/model/RouteOverlayOptions;ZLjava/lang/Float;ZZLcom/mapfusion/api/model/MarkerIcon;DDZJLjava/util/concurrent/Executor;Lcom/mapfusion/api/model/EmbeddedNavigationMode;FJ)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LocationOptions;ILcom/mapfusion/api/model/RouteOverlayOptions;ZLjava/lang/Float;ZZLcom/mapfusion/api/model/MarkerIcon;DDZJLjava/util/concurrent/Executor;Lcom/mapfusion/api/model/EmbeddedNavigationMode;FJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun component10 ()D
+	public final fun component11 ()Z
+	public final fun component12 ()J
+	public final fun component13 ()Ljava/util/concurrent/Executor;
+	public final fun component14 ()Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public final fun component15 ()F
+	public final fun component16 ()J
+	public final fun component2 ()I
+	public final fun component3 ()Lcom/mapfusion/api/model/RouteOverlayOptions;
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/Float;
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun component9 ()D
+	public final fun copy (Lcom/mapfusion/api/model/LocationOptions;ILcom/mapfusion/api/model/RouteOverlayOptions;ZLjava/lang/Float;ZZLcom/mapfusion/api/model/MarkerIcon;DDZJLjava/util/concurrent/Executor;Lcom/mapfusion/api/model/EmbeddedNavigationMode;FJ)Lcom/mapfusion/api/model/EmbeddedNavigationOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationOptions;Lcom/mapfusion/api/model/LocationOptions;ILcom/mapfusion/api/model/RouteOverlayOptions;ZLjava/lang/Float;ZZLcom/mapfusion/api/model/MarkerIcon;DDZJLjava/util/concurrent/Executor;Lcom/mapfusion/api/model/EmbeddedNavigationMode;FJILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArrivalThresholdMeters ()D
+	public final fun getAutoReroute ()Z
+	public final fun getCallbackExecutor ()Ljava/util/concurrent/Executor;
+	public final fun getCurrentMarkerIcon ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun getFollowLocation ()Z
+	public final fun getFollowZoom ()Ljava/lang/Float;
+	public final fun getLocationOptions ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun getNavigationMode ()Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public final fun getOffRouteThresholdMeters ()D
+	public final fun getRerouteCooldownMillis ()J
+	public final fun getRotateWithBearing ()Z
+	public final fun getRouteIndex ()I
+	public final fun getRouteOverlay ()Lcom/mapfusion/api/model/RouteOverlayOptions;
+	public final fun getShowCurrentMarker ()Z
+	public final fun getSimulationIntervalMillis ()J
+	public final fun getSimulationSpeedMetersPerSecond ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationProgress {
+	public fun <init> (Lcom/mapfusion/api/model/MapLocation;Lcom/mapfusion/api/model/RoutePath;ILjava/lang/String;DDDIZLcom/mapfusion/api/model/EmbeddedNavigationMode;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/MapLocation;Lcom/mapfusion/api/model/RoutePath;ILjava/lang/String;DDDIZLcom/mapfusion/api/model/EmbeddedNavigationMode;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun component10 ()Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public final fun component2 ()Lcom/mapfusion/api/model/RoutePath;
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun component7 ()D
+	public final fun component8 ()I
+	public final fun component9 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/MapLocation;Lcom/mapfusion/api/model/RoutePath;ILjava/lang/String;DDDIZLcom/mapfusion/api/model/EmbeddedNavigationMode;)Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationProgress;Lcom/mapfusion/api/model/MapLocation;Lcom/mapfusion/api/model/RoutePath;ILjava/lang/String;DDDIZLcom/mapfusion/api/model/EmbeddedNavigationMode;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationProgress;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrentInstruction ()Ljava/lang/String;
+	public final fun getCurrentStepIndex ()I
+	public final fun getDistanceAlongRouteMeters ()D
+	public final fun getDistanceToRouteMeters ()D
+	public final fun getLocation ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun getNavigationMode ()Lcom/mapfusion/api/model/EmbeddedNavigationMode;
+	public final fun getOffRoute ()Z
+	public final fun getPath ()Lcom/mapfusion/api/model/RoutePath;
+	public final fun getRemainingDistanceMeters ()D
+	public final fun getRemainingDurationSeconds ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationRequest {
+	public fun <init> (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/EmbeddedNavigationOptions;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/EmbeddedNavigationOptions;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/RouteRequest;
+	public final fun component2 ()Lcom/mapfusion/api/model/EmbeddedNavigationOptions;
+	public final fun copy (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/EmbeddedNavigationOptions;)Lcom/mapfusion/api/model/EmbeddedNavigationRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/EmbeddedNavigationRequest;Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/EmbeddedNavigationOptions;ILjava/lang/Object;)Lcom/mapfusion/api/model/EmbeddedNavigationRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptions ()Lcom/mapfusion/api/model/EmbeddedNavigationOptions;
+	public final fun getRouteRequest ()Lcom/mapfusion/api/model/RouteRequest;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/EmbeddedNavigationState : java/lang/Enum {
+	public static final field ARRIVED Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field DESTROYED Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field FAILED Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field IDLE Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field NAVIGATING Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field PAUSED Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field PLANNING Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field REROUTING Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static final field STOPPED Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/EmbeddedNavigationState;
+	public static fun values ()[Lcom/mapfusion/api/model/EmbeddedNavigationState;
+}
+
+public final class com/mapfusion/api/model/ErrorType : java/lang/Enum {
+	public static final field AUTH Lcom/mapfusion/api/model/ErrorType;
+	public static final field CANCELLED Lcom/mapfusion/api/model/ErrorType;
+	public static final field INVALID_PARAM Lcom/mapfusion/api/model/ErrorType;
+	public static final field NETWORK Lcom/mapfusion/api/model/ErrorType;
+	public static final field NO_RESULT Lcom/mapfusion/api/model/ErrorType;
+	public static final field PERMISSION Lcom/mapfusion/api/model/ErrorType;
+	public static final field TIMEOUT Lcom/mapfusion/api/model/ErrorType;
+	public static final field UNKNOWN Lcom/mapfusion/api/model/ErrorType;
+	public static final field UNSUPPORTED Lcom/mapfusion/api/model/ErrorType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/ErrorType;
+	public static fun values ()[Lcom/mapfusion/api/model/ErrorType;
+}
+
+public final class com/mapfusion/api/model/GeocodeRequest {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/mapfusion/api/model/GeocodeRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/GeocodeRequest;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/GeocodeRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAddress ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/GeocodeResult {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/mapfusion/api/model/GeocodeResult;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/GeocodeResult;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/GeocodeResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getDistrict ()Ljava/lang/String;
+	public final fun getFormattedAddress ()Ljava/lang/String;
+	public final fun getLevel ()Ljava/lang/String;
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getProvince ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/GroundOverlayOptions {
+	public fun <init> (Lcom/mapfusion/api/model/MapImage;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLngBounds;Ljava/lang/Float;Ljava/lang/Float;FFFZFLjava/lang/Object;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/MapImage;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLngBounds;Ljava/lang/Float;Ljava/lang/Float;FFFZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapImage;
+	public final fun component10 ()F
+	public final fun component11 ()Ljava/lang/Object;
+	public final fun component2 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component3 ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun component4 ()Ljava/lang/Float;
+	public final fun component5 ()Ljava/lang/Float;
+	public final fun component6 ()F
+	public final fun component7 ()F
+	public final fun component8 ()F
+	public final fun component9 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/MapImage;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLngBounds;Ljava/lang/Float;Ljava/lang/Float;FFFZFLjava/lang/Object;)Lcom/mapfusion/api/model/GroundOverlayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/GroundOverlayOptions;Lcom/mapfusion/api/model/MapImage;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLngBounds;Ljava/lang/Float;Ljava/lang/Float;FFFZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/GroundOverlayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnchorU ()F
+	public final fun getAnchorV ()F
+	public final fun getBounds ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun getHeightMeters ()Ljava/lang/Float;
+	public final fun getImage ()Lcom/mapfusion/api/model/MapImage;
+	public final fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getTransparency ()F
+	public final fun getVisible ()Z
+	public final fun getWidthMeters ()Ljava/lang/Float;
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/HeatMapOptions {
+	public fun <init> (Ljava/util/List;IFFFZF)V
+	public synthetic fun <init> (Ljava/util/List;IFFFZFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()I
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun component5 ()F
+	public final fun component6 ()Z
+	public final fun component7 ()F
+	public final fun copy (Ljava/util/List;IFFFZF)Lcom/mapfusion/api/model/HeatMapOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/HeatMapOptions;Ljava/util/List;IFFFZFILjava/lang/Object;)Lcom/mapfusion/api/model/HeatMapOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxZoom ()F
+	public final fun getMinZoom ()F
+	public final fun getOpacity ()F
+	public final fun getPoints ()Ljava/util/List;
+	public final fun getRadiusPixels ()I
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/HeatPoint {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;D)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;DILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()D
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;D)Lcom/mapfusion/api/model/HeatPoint;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/HeatPoint;Lcom/mapfusion/api/model/LatLng;DILjava/lang/Object;)Lcom/mapfusion/api/model/HeatPoint;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIntensity ()D
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LatLng {
+	public fun <init> (DDLcom/mapfusion/api/model/CoordType;)V
+	public synthetic fun <init> (DDLcom/mapfusion/api/model/CoordType;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()Lcom/mapfusion/api/model/CoordType;
+	public final fun copy (DDLcom/mapfusion/api/model/CoordType;)Lcom/mapfusion/api/model/LatLng;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LatLng;DDLcom/mapfusion/api/model/CoordType;ILjava/lang/Object;)Lcom/mapfusion/api/model/LatLng;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCoordType ()Lcom/mapfusion/api/model/CoordType;
+	public final fun getLatitude ()D
+	public final fun getLongitude ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LatLngBounds {
+	public static final field Companion Lcom/mapfusion/api/model/LatLngBounds$Companion;
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;)Lcom/mapfusion/api/model/LatLngBounds;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LatLngBounds;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;ILjava/lang/Object;)Lcom/mapfusion/api/model/LatLngBounds;
+	public fun equals (Ljava/lang/Object;)Z
+	public static final fun fromPoints (Ljava/lang/Iterable;)Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getNortheast ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getSouthwest ()Lcom/mapfusion/api/model/LatLng;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LatLngBounds$Companion {
+	public final fun fromPoints (Ljava/lang/Iterable;)Lcom/mapfusion/api/model/LatLngBounds;
+}
+
+public final class com/mapfusion/api/model/LocationAccuracy : java/lang/Enum {
+	public static final field DEVICE_ONLY Lcom/mapfusion/api/model/LocationAccuracy;
+	public static final field HIGH Lcom/mapfusion/api/model/LocationAccuracy;
+	public static final field LOW_POWER Lcom/mapfusion/api/model/LocationAccuracy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/LocationAccuracy;
+	public static fun values ()[Lcom/mapfusion/api/model/LocationAccuracy;
+}
+
+public final class com/mapfusion/api/model/LocationAccuracyStyle {
+	public fun <init> ()V
+	public fun <init> (FIIF)V
+	public synthetic fun <init> (FIIFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()F
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()F
+	public final fun copy (FIIF)Lcom/mapfusion/api/model/LocationAccuracyStyle;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationAccuracyStyle;FIIFILjava/lang/Object;)Lcom/mapfusion/api/model/LocationAccuracyStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFillColor ()I
+	public final fun getStrokeColor ()I
+	public final fun getStrokeWidth ()F
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class com/mapfusion/api/model/LocationDisplayEvent {
+}
+
+public final class com/mapfusion/api/model/LocationDisplayEvent$AccuracyRejected : com/mapfusion/api/model/LocationDisplayEvent {
+	public fun <init> (Lcom/mapfusion/api/model/MapLocation;F)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun component2 ()F
+	public final fun copy (Lcom/mapfusion/api/model/MapLocation;F)Lcom/mapfusion/api/model/LocationDisplayEvent$AccuracyRejected;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayEvent$AccuracyRejected;Lcom/mapfusion/api/model/MapLocation;FILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayEvent$AccuracyRejected;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun getMaxAccuracyMeters ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationDisplayEvent$Failure : com/mapfusion/api/model/LocationDisplayEvent {
+	public fun <init> (Lcom/mapfusion/api/model/MapError;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapError;
+	public final fun copy (Lcom/mapfusion/api/model/MapError;)Lcom/mapfusion/api/model/LocationDisplayEvent$Failure;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayEvent$Failure;Lcom/mapfusion/api/model/MapError;ILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayEvent$Failure;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lcom/mapfusion/api/model/MapError;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationDisplayEvent$LocationUpdated : com/mapfusion/api/model/LocationDisplayEvent {
+	public fun <init> (Lcom/mapfusion/api/model/MapLocation;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapLocation;
+	public final fun copy (Lcom/mapfusion/api/model/MapLocation;)Lcom/mapfusion/api/model/LocationDisplayEvent$LocationUpdated;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayEvent$LocationUpdated;Lcom/mapfusion/api/model/MapLocation;ILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayEvent$LocationUpdated;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/mapfusion/api/model/MapLocation;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationDisplayEvent$StateChanged : com/mapfusion/api/model/LocationDisplayEvent {
+	public fun <init> (Lcom/mapfusion/api/model/LocationDisplayState;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationDisplayState;
+	public final fun copy (Lcom/mapfusion/api/model/LocationDisplayState;)Lcom/mapfusion/api/model/LocationDisplayEvent$StateChanged;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayEvent$StateChanged;Lcom/mapfusion/api/model/LocationDisplayState;ILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayEvent$StateChanged;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getState ()Lcom/mapfusion/api/model/LocationDisplayState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/LocationDisplayListener {
+	public abstract fun onEvent (Lcom/mapfusion/api/model/LocationDisplayEvent;)V
+}
+
+public final class com/mapfusion/api/model/LocationDisplayOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/LocationDisplayStyle;Lcom/mapfusion/api/model/LocationFollowMode;Ljava/lang/Float;ZIFZ)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/LocationDisplayStyle;Lcom/mapfusion/api/model/LocationFollowMode;Ljava/lang/Float;ZIFZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun component2 ()Lcom/mapfusion/api/model/LocationDisplayStyle;
+	public final fun component3 ()Lcom/mapfusion/api/model/LocationFollowMode;
+	public final fun component4 ()Ljava/lang/Float;
+	public final fun component5 ()Z
+	public final fun component6 ()I
+	public final fun component7 ()F
+	public final fun component8 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/LocationDisplayStyle;Lcom/mapfusion/api/model/LocationFollowMode;Ljava/lang/Float;ZIFZ)Lcom/mapfusion/api/model/LocationDisplayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayOptions;Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/LocationDisplayStyle;Lcom/mapfusion/api/model/LocationFollowMode;Ljava/lang/Float;ZIFZILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimateCamera ()Z
+	public final fun getCameraAnimationDurationMs ()I
+	public final fun getFollowMode ()Lcom/mapfusion/api/model/LocationFollowMode;
+	public final fun getFollowZoom ()Ljava/lang/Float;
+	public final fun getLocationOptions ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun getMaxAccuracyMeters ()F
+	public final fun getPauseWhenBackground ()Z
+	public final fun getStyle ()Lcom/mapfusion/api/model/LocationDisplayStyle;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationDisplayState : java/lang/Enum {
+	public static final field DESTROYED Lcom/mapfusion/api/model/LocationDisplayState;
+	public static final field IDLE Lcom/mapfusion/api/model/LocationDisplayState;
+	public static final field PAUSED Lcom/mapfusion/api/model/LocationDisplayState;
+	public static final field RUNNING Lcom/mapfusion/api/model/LocationDisplayState;
+	public static final field STOPPED Lcom/mapfusion/api/model/LocationDisplayState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/LocationDisplayState;
+	public static fun values ()[Lcom/mapfusion/api/model/LocationDisplayState;
+}
+
+public final class com/mapfusion/api/model/LocationDisplayStyle {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LocationMarkerStyle;Lcom/mapfusion/api/model/LocationAccuracyStyle;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LocationMarkerStyle;Lcom/mapfusion/api/model/LocationAccuracyStyle;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationMarkerStyle;
+	public final fun component2 ()Lcom/mapfusion/api/model/LocationAccuracyStyle;
+	public final fun copy (Lcom/mapfusion/api/model/LocationMarkerStyle;Lcom/mapfusion/api/model/LocationAccuracyStyle;)Lcom/mapfusion/api/model/LocationDisplayStyle;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationDisplayStyle;Lcom/mapfusion/api/model/LocationMarkerStyle;Lcom/mapfusion/api/model/LocationAccuracyStyle;ILjava/lang/Object;)Lcom/mapfusion/api/model/LocationDisplayStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccuracy ()Lcom/mapfusion/api/model/LocationAccuracyStyle;
+	public final fun getMarker ()Lcom/mapfusion/api/model/LocationMarkerStyle;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationFollowMode : java/lang/Enum {
+	public static final field CONTINUOUS Lcom/mapfusion/api/model/LocationFollowMode;
+	public static final field COURSE_UP Lcom/mapfusion/api/model/LocationFollowMode;
+	public static final field FIRST_FIX Lcom/mapfusion/api/model/LocationFollowMode;
+	public static final field NONE Lcom/mapfusion/api/model/LocationFollowMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/LocationFollowMode;
+	public static fun values ()[Lcom/mapfusion/api/model/LocationFollowMode;
+}
+
+public final class com/mapfusion/api/model/LocationMarkerStyle {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/MarkerIcon;FFFZZFLjava/lang/String;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/MarkerIcon;FFFZZFLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()F
+	public final fun component8 ()Ljava/lang/String;
+	public final fun copy (Lcom/mapfusion/api/model/MarkerIcon;FFFZZFLjava/lang/String;)Lcom/mapfusion/api/model/LocationMarkerStyle;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationMarkerStyle;Lcom/mapfusion/api/model/MarkerIcon;FFFZZFLjava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/LocationMarkerStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getAnchorU ()F
+	public final fun getAnchorV ()F
+	public final fun getFlat ()Z
+	public final fun getIcon ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun getRotateWithBearing ()Z
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/LocationOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LocationAccuracy;JZZJZZFZ)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LocationAccuracy;JZZJZZFZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationAccuracy;
+	public final fun component2 ()J
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()J
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()F
+	public final fun component9 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/LocationAccuracy;JZZJZZFZ)Lcom/mapfusion/api/model/LocationOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/LocationOptions;Lcom/mapfusion/api/model/LocationAccuracy;JZZJZZFZILjava/lang/Object;)Lcom/mapfusion/api/model/LocationOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccuracy ()Lcom/mapfusion/api/model/LocationAccuracy;
+	public final fun getAllowMock ()Z
+	public final fun getDistanceFilterMeters ()F
+	public final fun getGpsFirst ()Z
+	public final fun getIntervalMs ()J
+	public final fun getNeedAddress ()Z
+	public final fun getOnceOnly ()Z
+	public final fun getTimeoutMs ()J
+	public final fun getUseCache ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/MapCallback {
+	public abstract fun onResult (Lcom/mapfusion/api/model/MapResult;)V
+}
+
+public abstract interface class com/mapfusion/api/model/MapCircle : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public abstract fun getFillColor ()I
+	public abstract fun getRadiusMeters ()D
+	public abstract fun getStrokeColor ()I
+	public abstract fun getStrokeWidth ()F
+	public abstract fun setCenter (Lcom/mapfusion/api/model/LatLng;)V
+	public abstract fun setFillColor (I)V
+	public abstract fun setRadiusMeters (D)V
+	public abstract fun setStrokeColor (I)V
+	public abstract fun setStrokeWidth (F)V
+}
+
+public final class com/mapfusion/api/model/MapCircle$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapCircle;)Z
+}
+
+public final class com/mapfusion/api/model/MapError {
+	public fun <init> (Lcom/mapfusion/api/model/ErrorType;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/ErrorType;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/ErrorType;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/Throwable;
+	public final fun copy (Lcom/mapfusion/api/model/ErrorType;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/Throwable;)Lcom/mapfusion/api/model/MapError;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapError;Lcom/mapfusion/api/model/ErrorType;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/Throwable;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getRawCode ()Ljava/lang/Integer;
+	public final fun getRawMessage ()Ljava/lang/String;
+	public final fun getType ()Lcom/mapfusion/api/model/ErrorType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/MapGroundOverlay : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getBounds ()Lcom/mapfusion/api/model/LatLngBounds;
+	public abstract fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public abstract fun getTransparency ()F
+	public abstract fun setBounds (Lcom/mapfusion/api/model/LatLngBounds;)V
+	public abstract fun setPosition (Lcom/mapfusion/api/model/LatLng;)V
+	public abstract fun setTransparency (F)V
+}
+
+public final class com/mapfusion/api/model/MapGroundOverlay$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapGroundOverlay;)Z
+}
+
+public abstract interface class com/mapfusion/api/model/MapHeatMap {
+	public abstract fun getPoints ()Ljava/util/List;
+	public abstract fun getVisible ()Z
+	public abstract fun getZIndex ()F
+	public abstract fun rawOverlay ()Ljava/lang/Object;
+	public abstract fun remove ()V
+	public abstract fun setPoints (Ljava/util/List;)V
+	public abstract fun setVisible (Z)V
+	public abstract fun setZIndex (F)V
+}
+
+public abstract class com/mapfusion/api/model/MapImage {
+}
+
+public final class com/mapfusion/api/model/MapImage$Asset : com/mapfusion/api/model/MapImage {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/mapfusion/api/model/MapImage$Asset;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapImage$Asset;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapImage$Asset;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAssetName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MapImage$Bytes : com/mapfusion/api/model/MapImage {
+	public fun <init> ([B)V
+	public final fun component1 ()[B
+	public final fun copy ([B)Lcom/mapfusion/api/model/MapImage$Bytes;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapImage$Bytes;[BILjava/lang/Object;)Lcom/mapfusion/api/model/MapImage$Bytes;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getData ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MapImage$Resource : com/mapfusion/api/model/MapImage {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/mapfusion/api/model/MapImage$Resource;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapImage$Resource;IILjava/lang/Object;)Lcom/mapfusion/api/model/MapImage$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getResId ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MapLocation {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;FFFDJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;FFFDJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component10 ()Ljava/lang/String;
+	public final fun component11 ()Ljava/lang/String;
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun component5 ()D
+	public final fun component6 ()J
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;FFFDJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/mapfusion/api/model/MapLocation;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapLocation;Lcom/mapfusion/api/model/LatLng;FFFDJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapLocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccuracy ()F
+	public final fun getAddress ()Ljava/lang/String;
+	public final fun getAltitude ()D
+	public final fun getBearing ()F
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getCountry ()Ljava/lang/String;
+	public final fun getDistrict ()Ljava/lang/String;
+	public final fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getProvince ()Ljava/lang/String;
+	public final fun getSpeed ()F
+	public final fun getTime ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/MapMarker : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getAlpha ()F
+	public abstract fun getFlat ()Z
+	public abstract fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public abstract fun getRotation ()F
+	public abstract fun getSnippet ()Ljava/lang/String;
+	public abstract fun getTitle ()Ljava/lang/String;
+	public abstract fun hideInfoWindow ()V
+	public abstract fun setAlpha (F)V
+	public abstract fun setFlat (Z)V
+	public abstract fun setPosition (Lcom/mapfusion/api/model/LatLng;)V
+	public abstract fun setRotation (F)V
+	public abstract fun setSnippet (Ljava/lang/String;)V
+	public abstract fun setTitle (Ljava/lang/String;)V
+	public abstract fun showInfoWindow ()V
+}
+
+public final class com/mapfusion/api/model/MapMarker$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapMarker;)Z
+}
+
+public abstract interface class com/mapfusion/api/model/MapMultiPointOverlay {
+	public abstract fun getClickable ()Z
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun getItems ()Ljava/util/List;
+	public abstract fun getTag ()Ljava/lang/Object;
+	public abstract fun getVisible ()Z
+	public abstract fun isRemoved ()Z
+	public abstract fun rawOverlay ()Ljava/lang/Object;
+	public abstract fun remove ()V
+	public abstract fun setClickable (Z)V
+	public abstract fun setItems (Ljava/util/List;)V
+	public abstract fun setTag (Ljava/lang/Object;)V
+	public abstract fun setVisible (Z)V
+}
+
+public abstract interface class com/mapfusion/api/model/MapOverlay {
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun getTag ()Ljava/lang/Object;
+	public abstract fun getVisible ()Z
+	public abstract fun getZIndex ()F
+	public fun isRemoved ()Z
+	public abstract fun rawOverlay ()Ljava/lang/Object;
+	public abstract fun remove ()V
+	public abstract fun setTag (Ljava/lang/Object;)V
+	public abstract fun setVisible (Z)V
+	public abstract fun setZIndex (F)V
+}
+
+public final class com/mapfusion/api/model/MapOverlay$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapOverlay;)Z
+}
+
+public abstract interface class com/mapfusion/api/model/MapPolygon : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getFillColor ()I
+	public abstract fun getPoints ()Ljava/util/List;
+	public abstract fun getStrokeColor ()I
+	public abstract fun getStrokeWidth ()F
+	public abstract fun setFillColor (I)V
+	public abstract fun setPoints (Ljava/util/List;)V
+	public abstract fun setStrokeColor (I)V
+	public abstract fun setStrokeWidth (F)V
+}
+
+public final class com/mapfusion/api/model/MapPolygon$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapPolygon;)Z
+}
+
+public abstract interface class com/mapfusion/api/model/MapPolyline : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getColor ()I
+	public abstract fun getPoints ()Ljava/util/List;
+	public abstract fun getWidth ()F
+	public abstract fun setColor (I)V
+	public abstract fun setPoints (Ljava/util/List;)V
+	public abstract fun setWidth (F)V
+}
+
+public final class com/mapfusion/api/model/MapPolyline$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapPolyline;)Z
+}
+
+public abstract class com/mapfusion/api/model/MapResult {
+	public final fun onFailure (Lkotlin/jvm/functions/Function1;)Lcom/mapfusion/api/model/MapResult;
+	public final fun onSuccess (Lkotlin/jvm/functions/Function1;)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/api/model/MapResult$Failure : com/mapfusion/api/model/MapResult {
+	public fun <init> (Lcom/mapfusion/api/model/MapError;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapError;
+	public final fun copy (Lcom/mapfusion/api/model/MapError;)Lcom/mapfusion/api/model/MapResult$Failure;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapResult$Failure;Lcom/mapfusion/api/model/MapError;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult$Failure;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lcom/mapfusion/api/model/MapError;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MapResult$Success : com/mapfusion/api/model/MapResult {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun copy (Ljava/lang/Object;)Lcom/mapfusion/api/model/MapResult$Success;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapResult$Success;Ljava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult$Success;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getData ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/MapRouteOverlay : java/lang/AutoCloseable {
+	public fun close ()V
+	public abstract fun getEndMarker ()Lcom/mapfusion/api/model/MapMarker;
+	public abstract fun getPath ()Lcom/mapfusion/api/model/RoutePath;
+	public abstract fun getPolyline ()Lcom/mapfusion/api/model/MapPolyline;
+	public abstract fun getStartMarker ()Lcom/mapfusion/api/model/MapMarker;
+	public abstract fun remove ()V
+}
+
+public final class com/mapfusion/api/model/MapRouteOverlay$DefaultImpls {
+	public static fun close (Lcom/mapfusion/api/model/MapRouteOverlay;)V
+}
+
+public final class com/mapfusion/api/model/MapSnapshot {
+	public fun <init> ([BII)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHeight ()I
+	public final fun getPngBytes ()[B
+	public final fun getWidth ()I
+	public fun hashCode ()I
+}
+
+public abstract interface class com/mapfusion/api/model/MapTextOverlay : com/mapfusion/api/model/MapOverlay {
+	public abstract fun getBackgroundColor ()I
+	public abstract fun getFontColor ()I
+	public abstract fun getFontSizePixels ()I
+	public abstract fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public abstract fun getRotation ()F
+	public abstract fun getText ()Ljava/lang/String;
+	public abstract fun setBackgroundColor (I)V
+	public abstract fun setFontColor (I)V
+	public abstract fun setFontSizePixels (I)V
+	public abstract fun setPosition (Lcom/mapfusion/api/model/LatLng;)V
+	public abstract fun setRotation (F)V
+	public abstract fun setText (Ljava/lang/String;)V
+}
+
+public final class com/mapfusion/api/model/MapTextOverlay$DefaultImpls {
+	public static fun isRemoved (Lcom/mapfusion/api/model/MapTextOverlay;)Z
+}
+
+public final class com/mapfusion/api/model/MapTile {
+	public fun <init> (II[B)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getData ()[B
+	public final fun getHeight ()I
+	public final fun getWidth ()I
+	public fun hashCode ()I
+}
+
+public abstract interface class com/mapfusion/api/model/MapTileOverlay {
+	public abstract fun clearCache ()V
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun rawOverlay ()Ljava/lang/Object;
+	public abstract fun remove ()V
+}
+
+public abstract interface class com/mapfusion/api/model/MapTileProvider {
+	public abstract fun getTile (III)Lcom/mapfusion/api/model/MapTile;
+}
+
+public final class com/mapfusion/api/model/MapType : java/lang/Enum {
+	public static final field NAVIGATION Lcom/mapfusion/api/model/MapType;
+	public static final field NIGHT Lcom/mapfusion/api/model/MapType;
+	public static final field NONE Lcom/mapfusion/api/model/MapType;
+	public static final field NORMAL Lcom/mapfusion/api/model/MapType;
+	public static final field SATELLITE Lcom/mapfusion/api/model/MapType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/MapType;
+	public static fun values ()[Lcom/mapfusion/api/model/MapType;
+}
+
+public final class com/mapfusion/api/model/MapUiOptions {
+	public fun <init> ()V
+	public fun <init> (ZZZZZZZZ)V
+	public synthetic fun <init> (ZZZZZZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()Z
+	public final fun copy (ZZZZZZZZ)Lcom/mapfusion/api/model/MapUiOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MapUiOptions;ZZZZZZZZILjava/lang/Object;)Lcom/mapfusion/api/model/MapUiOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCompassEnabled ()Z
+	public final fun getMyLocationButtonEnabled ()Z
+	public final fun getRotateGesturesEnabled ()Z
+	public final fun getScaleControlsEnabled ()Z
+	public final fun getScrollGesturesEnabled ()Z
+	public final fun getTiltGesturesEnabled ()Z
+	public final fun getZoomControlsEnabled ()Z
+	public final fun getZoomGesturesEnabled ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class com/mapfusion/api/model/MarkerIcon {
+}
+
+public final class com/mapfusion/api/model/MarkerIcon$Asset : com/mapfusion/api/model/MarkerIcon {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/mapfusion/api/model/MarkerIcon$Asset;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MarkerIcon$Asset;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/MarkerIcon$Asset;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAssetName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MarkerIcon$Bytes : com/mapfusion/api/model/MarkerIcon {
+	public fun <init> ([B)V
+	public final fun component1 ()[B
+	public final fun copy ([B)Lcom/mapfusion/api/model/MarkerIcon$Bytes;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MarkerIcon$Bytes;[BILjava/lang/Object;)Lcom/mapfusion/api/model/MarkerIcon$Bytes;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getData ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MarkerIcon$Default : com/mapfusion/api/model/MarkerIcon {
+	public static final field INSTANCE Lcom/mapfusion/api/model/MarkerIcon$Default;
+}
+
+public final class com/mapfusion/api/model/MarkerIcon$Resource : com/mapfusion/api/model/MarkerIcon {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/mapfusion/api/model/MarkerIcon$Resource;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MarkerIcon$Resource;IILjava/lang/Object;)Lcom/mapfusion/api/model/MarkerIcon$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getResId ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MarkerOptions {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MarkerIcon;FFZFFZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MarkerIcon;FFZFFZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component10 ()Z
+	public final fun component11 ()Z
+	public final fun component12 ()F
+	public final fun component13 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun component5 ()F
+	public final fun component6 ()F
+	public final fun component7 ()Z
+	public final fun component8 ()F
+	public final fun component9 ()F
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MarkerIcon;FFZFFZZFLjava/lang/Object;)Lcom/mapfusion/api/model/MarkerOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MarkerOptions;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/MarkerIcon;FFZFFZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/MarkerOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getAnchorU ()F
+	public final fun getAnchorV ()F
+	public final fun getDraggable ()Z
+	public final fun getFlat ()Z
+	public final fun getIcon ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getRotation ()F
+	public final fun getSnippet ()Ljava/lang/String;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MultiPointItem {
+	public fun <init> (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/Object;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Object;
+	public final fun copy (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/Object;)Lcom/mapfusion/api/model/MultiPointItem;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MultiPointItem;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/MultiPointItem;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/MultiPointOverlayOptions {
+	public fun <init> (Ljava/util/List;Lcom/mapfusion/api/model/MarkerIcon;FFZZLjava/lang/Object;)V
+	public synthetic fun <init> (Ljava/util/List;Lcom/mapfusion/api/model/MarkerIcon;FFZZLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()Ljava/lang/Object;
+	public final fun copy (Ljava/util/List;Lcom/mapfusion/api/model/MarkerIcon;FFZZLjava/lang/Object;)Lcom/mapfusion/api/model/MultiPointOverlayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/MultiPointOverlayOptions;Ljava/util/List;Lcom/mapfusion/api/model/MarkerIcon;FFZZLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/MultiPointOverlayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnchorU ()F
+	public final fun getAnchorV ()F
+	public final fun getClickable ()Z
+	public final fun getIcon ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun getItems ()Ljava/util/List;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getVisible ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PoiItem {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/lang/Integer;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;)Lcom/mapfusion/api/model/PoiItem;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PoiItem;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;ILjava/lang/Object;)Lcom/mapfusion/api/model/PoiItem;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAddress ()Ljava/lang/String;
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getDistanceMeters ()Ljava/lang/Integer;
+	public final fun getDistrict ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPhone ()Ljava/lang/String;
+	public final fun getProvince ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PoiSearchRequest {
+	public fun <init> (Lcom/mapfusion/api/model/PoiSearchType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIILcom/mapfusion/api/model/PoiSort;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/PoiSearchType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIILcom/mapfusion/api/model/PoiSort;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/PoiSearchType;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component6 ()I
+	public final fun component7 ()I
+	public final fun component8 ()I
+	public final fun component9 ()Lcom/mapfusion/api/model/PoiSort;
+	public final fun copy (Lcom/mapfusion/api/model/PoiSearchType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIILcom/mapfusion/api/model/PoiSort;)Lcom/mapfusion/api/model/PoiSearchRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PoiSearchRequest;Lcom/mapfusion/api/model/PoiSearchType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIILcom/mapfusion/api/model/PoiSort;ILjava/lang/Object;)Lcom/mapfusion/api/model/PoiSearchRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getKeyword ()Ljava/lang/String;
+	public final fun getPageIndex ()I
+	public final fun getPageSize ()I
+	public final fun getRadiusMeters ()I
+	public final fun getSort ()Lcom/mapfusion/api/model/PoiSort;
+	public final fun getType ()Lcom/mapfusion/api/model/PoiSearchType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PoiSearchResult {
+	public fun <init> (Ljava/util/List;III)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun copy (Ljava/util/List;III)Lcom/mapfusion/api/model/PoiSearchResult;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PoiSearchResult;Ljava/util/List;IIIILjava/lang/Object;)Lcom/mapfusion/api/model/PoiSearchResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getItems ()Ljava/util/List;
+	public final fun getPageIndex ()I
+	public final fun getPageSize ()I
+	public final fun getTotalCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PoiSearchType : java/lang/Enum {
+	public static final field KEYWORD Lcom/mapfusion/api/model/PoiSearchType;
+	public static final field NEARBY Lcom/mapfusion/api/model/PoiSearchType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/PoiSearchType;
+	public static fun values ()[Lcom/mapfusion/api/model/PoiSearchType;
+}
+
+public final class com/mapfusion/api/model/PoiSort : java/lang/Enum {
+	public static final field DEFAULT Lcom/mapfusion/api/model/PoiSort;
+	public static final field DISTANCE Lcom/mapfusion/api/model/PoiSort;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/PoiSort;
+	public static fun values ()[Lcom/mapfusion/api/model/PoiSort;
+}
+
+public final class com/mapfusion/api/model/PoiSuggestion {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;)Lcom/mapfusion/api/model/PoiSuggestion;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PoiSuggestion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/PoiSuggestion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAddress ()Ljava/lang/String;
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getDistrict ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PoiSuggestionRequest {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ZLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ZLjava/lang/String;)Lcom/mapfusion/api/model/PoiSuggestionRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PoiSuggestionRequest;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ZLjava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/PoiSuggestionRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getCenter ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getCityLimit ()Z
+	public final fun getKeyword ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PolygonOptions {
+	public fun <init> (Ljava/util/List;FIIZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Ljava/util/List;FIIZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()F
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()F
+	public final fun component8 ()Ljava/lang/Object;
+	public final fun copy (Ljava/util/List;FIIZZFLjava/lang/Object;)Lcom/mapfusion/api/model/PolygonOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PolygonOptions;Ljava/util/List;FIIZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/PolygonOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClickable ()Z
+	public final fun getFillColor ()I
+	public final fun getPoints ()Ljava/util/List;
+	public final fun getStrokeColor ()I
+	public final fun getStrokeWidth ()F
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/PolylineOptions {
+	public fun <init> (Ljava/util/List;FIZZZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Ljava/util/List;FIZZZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()F
+	public final fun component3 ()I
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()F
+	public final fun component9 ()Ljava/lang/Object;
+	public final fun copy (Ljava/util/List;FIZZZZFLjava/lang/Object;)Lcom/mapfusion/api/model/PolylineOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/PolylineOptions;Ljava/util/List;FIZZZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/PolylineOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClickable ()Z
+	public final fun getColor ()I
+	public final fun getDotted ()Z
+	public final fun getGeodesic ()Z
+	public final fun getPoints ()Ljava/util/List;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getVisible ()Z
+	public final fun getWidth ()F
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/mapfusion/api/model/RequestHandle {
+	public abstract fun cancel ()Z
+	public abstract fun isCancelled ()Z
+	public abstract fun isDone ()Z
+}
+
+public final class com/mapfusion/api/model/ReverseGeocodeRequest {
+	public fun <init> (Lcom/mapfusion/api/model/LatLng;I)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LatLng;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component2 ()I
+	public final fun copy (Lcom/mapfusion/api/model/LatLng;I)Lcom/mapfusion/api/model/ReverseGeocodeRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/ReverseGeocodeRequest;Lcom/mapfusion/api/model/LatLng;IILjava/lang/Object;)Lcom/mapfusion/api/model/ReverseGeocodeRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getRadiusMeters ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/ReverseGeocodeResult {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/mapfusion/api/model/ReverseGeocodeResult;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/ReverseGeocodeResult;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/ReverseGeocodeResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdCode ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getCountry ()Ljava/lang/String;
+	public final fun getDistrict ()Ljava/lang/String;
+	public final fun getFormattedAddress ()Ljava/lang/String;
+	public final fun getPois ()Ljava/util/List;
+	public final fun getProvince ()Ljava/lang/String;
+	public final fun getStreet ()Ljava/lang/String;
+	public final fun getStreetNumber ()Ljava/lang/String;
+	public final fun getTownship ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RouteMarkerOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/MarkerIcon;Ljava/lang/String;Ljava/lang/String;FFFFZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/MarkerIcon;Ljava/lang/String;Ljava/lang/String;FFFFZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun component10 ()F
+	public final fun component11 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()F
+	public final fun component5 ()F
+	public final fun component6 ()F
+	public final fun component7 ()F
+	public final fun component8 ()Z
+	public final fun component9 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/MarkerIcon;Ljava/lang/String;Ljava/lang/String;FFFFZZFLjava/lang/Object;)Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RouteMarkerOptions;Lcom/mapfusion/api/model/MarkerIcon;Ljava/lang/String;Ljava/lang/String;FFFFZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAlpha ()F
+	public final fun getAnchorU ()F
+	public final fun getAnchorV ()F
+	public final fun getFlat ()Z
+	public final fun getIcon ()Lcom/mapfusion/api/model/MarkerIcon;
+	public final fun getRotation ()F
+	public final fun getSnippet ()Ljava/lang/String;
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RouteOverlayOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/RouteMarkerOptions;Lcom/mapfusion/api/model/RouteMarkerOptions;FIZZZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/RouteMarkerOptions;Lcom/mapfusion/api/model/RouteMarkerOptions;FIZZZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public final fun component10 ()Ljava/lang/Object;
+	public final fun component2 ()Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public final fun component3 ()F
+	public final fun component4 ()I
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()Z
+	public final fun component9 ()F
+	public final fun copy (Lcom/mapfusion/api/model/RouteMarkerOptions;Lcom/mapfusion/api/model/RouteMarkerOptions;FIZZZZFLjava/lang/Object;)Lcom/mapfusion/api/model/RouteOverlayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RouteOverlayOptions;Lcom/mapfusion/api/model/RouteMarkerOptions;Lcom/mapfusion/api/model/RouteMarkerOptions;FIZZZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/RouteOverlayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEndMarker ()Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public final fun getLineClickable ()Z
+	public final fun getLineColor ()I
+	public final fun getLineDotted ()Z
+	public final fun getLineGeodesic ()Z
+	public final fun getLineTag ()Ljava/lang/Object;
+	public final fun getLineWidth ()F
+	public final fun getLineZIndex ()F
+	public final fun getStartMarker ()Lcom/mapfusion/api/model/RouteMarkerOptions;
+	public final fun getVisible ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RoutePath {
+	public fun <init> (IILjava/util/List;Ljava/util/List;Ljava/lang/Double;)V
+	public synthetic fun <init> (IILjava/util/List;Ljava/util/List;Ljava/lang/Double;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/lang/Double;
+	public final fun copy (IILjava/util/List;Ljava/util/List;Ljava/lang/Double;)Lcom/mapfusion/api/model/RoutePath;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RoutePath;IILjava/util/List;Ljava/util/List;Ljava/lang/Double;ILjava/lang/Object;)Lcom/mapfusion/api/model/RoutePath;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCost ()Ljava/lang/Double;
+	public final fun getDistanceMeters ()I
+	public final fun getDurationSeconds ()I
+	public final fun getPolyline ()Ljava/util/List;
+	public final fun getSteps ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RoutePreference : java/lang/Enum {
+	public static final field AVOID_CONGESTION Lcom/mapfusion/api/model/RoutePreference;
+	public static final field AVOID_HIGHWAYS Lcom/mapfusion/api/model/RoutePreference;
+	public static final field AVOID_TOLLS Lcom/mapfusion/api/model/RoutePreference;
+	public static final field DEFAULT Lcom/mapfusion/api/model/RoutePreference;
+	public static final field FASTEST Lcom/mapfusion/api/model/RoutePreference;
+	public static final field LEAST_TRANSFERS Lcom/mapfusion/api/model/RoutePreference;
+	public static final field LEAST_WALKING Lcom/mapfusion/api/model/RoutePreference;
+	public static final field NO_SUBWAY Lcom/mapfusion/api/model/RoutePreference;
+	public static final field SHORTEST_DISTANCE Lcom/mapfusion/api/model/RoutePreference;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/RoutePreference;
+	public static fun values ()[Lcom/mapfusion/api/model/RoutePreference;
+}
+
+public final class com/mapfusion/api/model/RouteRequest {
+	public fun <init> (Lcom/mapfusion/api/model/TravelMode;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/lang/String;Lcom/mapfusion/api/model/RoutePreference;ZLjava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/TravelMode;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/lang/String;Lcom/mapfusion/api/model/RoutePreference;ZLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/TravelMode;
+	public final fun component2 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component3 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Lcom/mapfusion/api/model/RoutePreference;
+	public final fun component7 ()Z
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Lcom/mapfusion/api/model/TravelMode;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/lang/String;Lcom/mapfusion/api/model/RoutePreference;ZLjava/lang/String;Ljava/lang/String;)Lcom/mapfusion/api/model/RouteRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RouteRequest;Lcom/mapfusion/api/model/TravelMode;Lcom/mapfusion/api/model/LatLng;Lcom/mapfusion/api/model/LatLng;Ljava/util/List;Ljava/lang/String;Lcom/mapfusion/api/model/RoutePreference;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/RouteRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAvoidFerries ()Z
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getDestination ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getMode ()Lcom/mapfusion/api/model/TravelMode;
+	public final fun getOrigin ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getPlateNumber ()Ljava/lang/String;
+	public final fun getPlateProvince ()Ljava/lang/String;
+	public final fun getPreference ()Lcom/mapfusion/api/model/RoutePreference;
+	public final fun getWaypoints ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RouteResult {
+	public fun <init> (Lcom/mapfusion/api/model/TravelMode;Ljava/util/List;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/TravelMode;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Lcom/mapfusion/api/model/TravelMode;Ljava/util/List;)Lcom/mapfusion/api/model/RouteResult;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RouteResult;Lcom/mapfusion/api/model/TravelMode;Ljava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/RouteResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMode ()Lcom/mapfusion/api/model/TravelMode;
+	public final fun getPaths ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/RouteStep {
+	public fun <init> (Ljava/lang/String;IILjava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;IILjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;IILjava/util/List;)Lcom/mapfusion/api/model/RouteStep;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/RouteStep;Ljava/lang/String;IILjava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/RouteStep;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDistanceMeters ()I
+	public final fun getDurationSeconds ()I
+	public final fun getInstruction ()Ljava/lang/String;
+	public final fun getPolyline ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/TextHorizontalAlignment : java/lang/Enum {
+	public static final field CENTER Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public static final field LEFT Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public static final field RIGHT Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public static fun values ()[Lcom/mapfusion/api/model/TextHorizontalAlignment;
+}
+
+public final class com/mapfusion/api/model/TextOverlayOptions {
+	public fun <init> (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIIFLcom/mapfusion/api/model/TextHorizontalAlignment;Lcom/mapfusion/api/model/TextVerticalAlignment;ZZFLjava/lang/Object;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIIFLcom/mapfusion/api/model/TextHorizontalAlignment;Lcom/mapfusion/api/model/TextVerticalAlignment;ZZFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Z
+	public final fun component11 ()F
+	public final fun component12 ()Ljava/lang/Object;
+	public final fun component2 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()F
+	public final fun component7 ()Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public final fun component8 ()Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIIFLcom/mapfusion/api/model/TextHorizontalAlignment;Lcom/mapfusion/api/model/TextVerticalAlignment;ZZFLjava/lang/Object;)Lcom/mapfusion/api/model/TextOverlayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/TextOverlayOptions;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;IIIFLcom/mapfusion/api/model/TextHorizontalAlignment;Lcom/mapfusion/api/model/TextVerticalAlignment;ZZFLjava/lang/Object;ILjava/lang/Object;)Lcom/mapfusion/api/model/TextOverlayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBackgroundColor ()I
+	public final fun getClickable ()Z
+	public final fun getFontColor ()I
+	public final fun getFontSizePixels ()I
+	public final fun getHorizontalAlignment ()Lcom/mapfusion/api/model/TextHorizontalAlignment;
+	public final fun getPosition ()Lcom/mapfusion/api/model/LatLng;
+	public final fun getRotation ()F
+	public final fun getTag ()Ljava/lang/Object;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getVerticalAlignment ()Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/TextVerticalAlignment : java/lang/Enum {
+	public static final field BOTTOM Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public static final field CENTER Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public static final field TOP Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/TextVerticalAlignment;
+	public static fun values ()[Lcom/mapfusion/api/model/TextVerticalAlignment;
+}
+
+public final class com/mapfusion/api/model/TileOverlayOptions {
+	public static final field MAX_MERCATOR_LATITUDE D
+	public static final field MAX_WEB_MERCATOR_ZOOM I
+	public fun <init> (Lcom/mapfusion/api/model/MapTileProvider;IIIILcom/mapfusion/api/model/LatLngBounds;ZZZF)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/MapTileProvider;IIIILcom/mapfusion/api/model/LatLngBounds;ZZZFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/MapTileProvider;
+	public final fun component10 ()F
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun component7 ()Z
+	public final fun component8 ()Z
+	public final fun component9 ()Z
+	public final fun containsTile (III)Z
+	public final fun copy (Lcom/mapfusion/api/model/MapTileProvider;IIIILcom/mapfusion/api/model/LatLngBounds;ZZZF)Lcom/mapfusion/api/model/TileOverlayOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/TileOverlayOptions;Lcom/mapfusion/api/model/MapTileProvider;IIIILcom/mapfusion/api/model/LatLngBounds;ZZZFILjava/lang/Object;)Lcom/mapfusion/api/model/TileOverlayOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBounds ()Lcom/mapfusion/api/model/LatLngBounds;
+	public final fun getDiskCacheEnabled ()Z
+	public final fun getMaxZoom ()I
+	public final fun getMemoryCacheEnabled ()Z
+	public final fun getMinZoom ()I
+	public final fun getProvider ()Lcom/mapfusion/api/model/MapTileProvider;
+	public final fun getTileHeight ()I
+	public final fun getTileWidth ()I
+	public final fun getVisible ()Z
+	public final fun getZIndex ()F
+	public fun hashCode ()I
+	public final fun loadTile (III)Lcom/mapfusion/api/model/MapTile;
+	public fun toString ()Ljava/lang/String;
+	public final fun validateTile (Lcom/mapfusion/api/model/MapTile;)Lcom/mapfusion/api/model/MapTile;
+}
+
+public final class com/mapfusion/api/model/TrackOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/mapfusion/api/model/LocationOptions;DFZZLjava/lang/Float;FIZLjava/util/concurrent/Executor;)V
+	public synthetic fun <init> (Lcom/mapfusion/api/model/LocationOptions;DFZZLjava/lang/Float;FIZLjava/util/concurrent/Executor;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun component10 ()Ljava/util/concurrent/Executor;
+	public final fun component2 ()D
+	public final fun component3 ()F
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Ljava/lang/Float;
+	public final fun component7 ()F
+	public final fun component8 ()I
+	public final fun component9 ()Z
+	public final fun copy (Lcom/mapfusion/api/model/LocationOptions;DFZZLjava/lang/Float;FIZLjava/util/concurrent/Executor;)Lcom/mapfusion/api/model/TrackOptions;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/TrackOptions;Lcom/mapfusion/api/model/LocationOptions;DFZZLjava/lang/Float;FIZLjava/util/concurrent/Executor;ILjava/lang/Object;)Lcom/mapfusion/api/model/TrackOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCallbackExecutor ()Ljava/util/concurrent/Executor;
+	public final fun getDrawOnMap ()Z
+	public final fun getFollowLocation ()Z
+	public final fun getFollowZoom ()Ljava/lang/Float;
+	public final fun getLocationOptions ()Lcom/mapfusion/api/model/LocationOptions;
+	public final fun getMaxAccuracyMeters ()F
+	public final fun getMinPointDistanceMeters ()D
+	public final fun getPolylineColor ()I
+	public final fun getPolylineWidth ()F
+	public final fun getShowCurrentMarker ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/TrackSnapshot {
+	public fun <init> (Lcom/mapfusion/api/capability/TrackState;Ljava/util/List;DJLjava/lang/Long;Ljava/lang/Long;I)V
+	public synthetic fun <init> (Lcom/mapfusion/api/capability/TrackState;Ljava/util/List;DJLjava/lang/Long;Ljava/lang/Long;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/mapfusion/api/capability/TrackState;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()D
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/lang/Long;
+	public final fun component6 ()Ljava/lang/Long;
+	public final fun component7 ()I
+	public final fun copy (Lcom/mapfusion/api/capability/TrackState;Ljava/util/List;DJLjava/lang/Long;Ljava/lang/Long;I)Lcom/mapfusion/api/model/TrackSnapshot;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/TrackSnapshot;Lcom/mapfusion/api/capability/TrackState;Ljava/util/List;DJLjava/lang/Long;Ljava/lang/Long;IILjava/lang/Object;)Lcom/mapfusion/api/model/TrackSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDistanceMeters ()D
+	public final fun getElapsedTimeMillis ()J
+	public final fun getEndedAtMillis ()Ljava/lang/Long;
+	public final fun getPoints ()Ljava/util/List;
+	public final fun getRejectedPointCount ()I
+	public final fun getStartedAtMillis ()Ljava/lang/Long;
+	public final fun getState ()Lcom/mapfusion/api/capability/TrackState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/TravelMode : java/lang/Enum {
+	public static final field BICYCLE Lcom/mapfusion/api/model/TravelMode;
+	public static final field DRIVING Lcom/mapfusion/api/model/TravelMode;
+	public static final field ELECTRIC_BICYCLE Lcom/mapfusion/api/model/TravelMode;
+	public static final field RIDING Lcom/mapfusion/api/model/TravelMode;
+	public static final field TRANSIT Lcom/mapfusion/api/model/TravelMode;
+	public static final field WALKING Lcom/mapfusion/api/model/TravelMode;
+	public final fun canonical ()Lcom/mapfusion/api/model/TravelMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/mapfusion/api/model/TravelMode;
+	public static fun values ()[Lcom/mapfusion/api/model/TravelMode;
+}
+
+public final class com/mapfusion/api/model/WeatherForecast {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/mapfusion/api/model/WeatherForecast;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/WeatherForecast;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/mapfusion/api/model/WeatherForecast;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdCode ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getDays ()Ljava/util/List;
+	public final fun getProvince ()Ljava/lang/String;
+	public final fun getReportTime ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/WeatherForecastDay {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5 ()Ljava/lang/Double;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/mapfusion/api/model/WeatherForecastDay;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/WeatherForecastDay;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/mapfusion/api/model/WeatherForecastDay;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDate ()Ljava/lang/String;
+	public final fun getDayCondition ()Ljava/lang/String;
+	public final fun getDayTemperatureC ()Ljava/lang/Double;
+	public final fun getDayWindDirection ()Ljava/lang/String;
+	public final fun getDayWindPower ()Ljava/lang/String;
+	public final fun getNightCondition ()Ljava/lang/String;
+	public final fun getNightTemperatureC ()Ljava/lang/Double;
+	public final fun getNightWindDirection ()Ljava/lang/String;
+	public final fun getNightWindPower ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/WeatherNow {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/lang/Integer;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/Double;
+	public final fun component6 ()Ljava/lang/Double;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;)Lcom/mapfusion/api/model/WeatherNow;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/WeatherNow;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;ILjava/lang/Object;)Lcom/mapfusion/api/model/WeatherNow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdCode ()Ljava/lang/String;
+	public final fun getAirQualityIndex ()Ljava/lang/Integer;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getCondition ()Ljava/lang/String;
+	public final fun getHumidityPercent ()Ljava/lang/Double;
+	public final fun getProvince ()Ljava/lang/String;
+	public final fun getReportTime ()Ljava/lang/String;
+	public final fun getTemperatureC ()Ljava/lang/Double;
+	public final fun getWindDirection ()Ljava/lang/String;
+	public final fun getWindPower ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/mapfusion/api/model/WeatherRequest {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/mapfusion/api/model/LatLng;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;)Lcom/mapfusion/api/model/WeatherRequest;
+	public static synthetic fun copy$default (Lcom/mapfusion/api/model/WeatherRequest;Ljava/lang/String;Ljava/lang/String;Lcom/mapfusion/api/model/LatLng;ILjava/lang/Object;)Lcom/mapfusion/api/model/WeatherRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdCode ()Ljava/lang/String;
+	public final fun getCity ()Ljava/lang/String;
+	public final fun getLocation ()Lcom/mapfusion/api/model/LatLng;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

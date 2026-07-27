@@ -1,0 +1,25 @@
+# Gradle / Android build output
+.gradle/
+.kotlin/
+**/build/
+
+# IDE and local machine state
+.idea/
+*.iml
+local.properties
+
+# Local tooling / assistant state (may leak local paths)
+.claude/
+CLAUDE.md
+
+# Keys, signing material and local secrets
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,55 @@
+public final class com/mapfusion/factory/MapFusion {
+	public static final field INSTANCE Lcom/mapfusion/factory/MapFusion;
+	public final fun availableProviders ()Ljava/util/Set;
+	public final fun create (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/api/MapProvider;
+	public final fun createLocationDisplay (Lcom/mapfusion/api/MapProvider;Lcom/mapfusion/api/capability/MapController;)Lcom/mapfusion/api/capability/LocationDisplay;
+	public final fun createOrNull (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/api/MapProvider;
+	public final fun createTrackRecorder (Lcom/mapfusion/api/MapProvider;Lcom/mapfusion/api/capability/MapController;)Lcom/mapfusion/api/capability/TrackRecorder;
+	public static synthetic fun createTrackRecorder$default (Lcom/mapfusion/factory/MapFusion;Lcom/mapfusion/api/MapProvider;Lcom/mapfusion/api/capability/MapController;ILjava/lang/Object;)Lcom/mapfusion/api/capability/TrackRecorder;
+	public final fun openSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;)Lcom/mapfusion/factory/MapFusionSession;
+	public static synthetic fun openSession$default (Lcom/mapfusion/factory/MapFusion;Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/factory/MapFusionSession;
+	public final fun register ([Lcom/mapfusion/api/MapProviderFactory;)V
+	public final fun updatePrivacyConsent (Landroid/content/Context;Lcom/mapfusion/api/capability/Provider;Z)Lcom/mapfusion/api/model/MapResult;
+	public final fun updatePrivacyConsent (Landroid/content/Context;Z)Ljava/util/Map;
+}
+
+public final class com/mapfusion/factory/MapFusionSession : java/lang/AutoCloseable {
+	public fun close ()V
+	public final fun createTrackRecorder ()Lcom/mapfusion/api/capability/TrackRecorder;
+	public final fun destroy ()V
+	public final fun getCapabilities ()Ljava/util/Set;
+	public final fun getDistrictSearcher ()Lcom/mapfusion/api/capability/DistrictSearcher;
+	public final fun getEmbeddedNavigator ()Lcom/mapfusion/api/capability/EmbeddedNavigator;
+	public final fun getGeocoder ()Lcom/mapfusion/api/capability/Geocoder;
+	public final fun getLocationClient ()Lcom/mapfusion/api/capability/LocationClient;
+	public final fun getLocationDisplay ()Lcom/mapfusion/api/capability/LocationDisplay;
+	public final fun getMapController ()Lcom/mapfusion/api/capability/MapController;
+	public final fun getNavigator ()Lcom/mapfusion/api/capability/Navigator;
+	public final fun getPoiSearcher ()Lcom/mapfusion/api/capability/PoiSearcher;
+	public final fun getProvider ()Lcom/mapfusion/api/MapProvider;
+	public final fun getProviderType ()Lcom/mapfusion/api/capability/Provider;
+	public final fun getRoutePlanner ()Lcom/mapfusion/api/capability/RoutePlanner;
+	public final fun getView ()Landroid/view/View;
+	public final fun getWeatherService ()Lcom/mapfusion/api/capability/WeatherService;
+	public final fun onLowMemory ()V
+	public final fun onPause ()V
+	public final fun onResume ()V
+	public final fun onSaveInstanceState (Landroid/os/Bundle;)V
+	public final fun supports (Lcom/mapfusion/api/capability/Capability;)Z
+}
+
+public final class com/mapfusion/factory/ProviderNotRegisteredException : java/lang/IllegalStateException {
+	public fun <init> (Lcom/mapfusion/api/capability/Provider;)V
+	public final fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+}
+
+public final class com/mapfusion/factory/ProviderRegistry {
+	public static final field INSTANCE Lcom/mapfusion/factory/ProviderRegistry;
+	public final fun availableProviders ()Ljava/util/Set;
+	public final fun clear ()V
+	public final fun factoryOf (Lcom/mapfusion/api/capability/Provider;)Lcom/mapfusion/api/MapProviderFactory;
+	public final fun isRegistered (Lcom/mapfusion/api/capability/Provider;)Z
+	public final fun register (Lcom/mapfusion/api/MapProviderFactory;)V
+	public final fun unregister (Lcom/mapfusion/api/capability/Provider;)V
+}
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Map Fusion Demo</string>
+    <string name="map_service_disabled">地图服务未启用\n请通过顶部“隐私设置”同意后使用</string>
+    <string name="provider_initializing">%1$s地图初始化中</string>
+    <string name="provider_initialization_failed">%1$s地图初始化失败</string>
+    <string name="route_navigation_summary">起点：当前定位或北京默认点\n终点：统一示例目的地\n真实导航由设备定位推进；模拟导航沿规划路线推进。两者均为当前地图内的轻量导航，不是厂商官方 Navi 引擎</string>
+    <string name="result_message">%1$s\n%2$s</string>
+    <string name="provider_capability_summary">%1$s地图 · %2$d 项能力</string>
+</resources>

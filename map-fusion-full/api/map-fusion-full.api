@@ -1,0 +1,10 @@
+public final class com/mapfusion/full/MapFusionFull {
+	public static final field INSTANCE Lcom/mapfusion/full/MapFusionFull;
+	public static final fun create (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/api/MapProvider;
+	public static final fun install ()V
+	public static final fun openSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun openSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;)Lcom/mapfusion/factory/MapFusionSession;
+	public static synthetic fun openSession$default (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun updatePrivacyConsent (Landroid/content/Context;Z)Ljava/util/Map;
+}
+

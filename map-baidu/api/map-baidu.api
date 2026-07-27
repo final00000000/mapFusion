@@ -1,0 +1,15 @@
+public final class com/mapfusion/baidu/BaiduNativeAccess {
+	public final fun mapOf (Lcom/mapfusion/api/capability/MapController;)Lcom/baidu/mapapi/map/BaiduMap;
+	public final fun mapViewOf (Lcom/mapfusion/api/capability/MapController;)Lcom/baidu/mapapi/map/MapView;
+	public final fun newGeocoder ()Lcom/baidu/mapapi/search/geocode/GeoCoder;
+	public final fun newPoiSearch ()Lcom/baidu/mapapi/search/poi/PoiSearch;
+	public final fun newRoutePlanSearch ()Lcom/baidu/mapapi/search/route/RoutePlanSearch;
+}
+
+public final class com/mapfusion/baidu/BaiduProviderFactory : com/mapfusion/api/MapProviderFactory {
+	public fun <init> ()V
+	public fun create (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/api/MapProvider;
+	public fun getProvider ()Lcom/mapfusion/api/capability/Provider;
+	public fun updatePrivacyConsent (Landroid/content/Context;Z)V
+}
+
