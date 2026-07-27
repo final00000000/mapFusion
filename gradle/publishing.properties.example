@@ -1,0 +1,21 @@
+# 将非敏感项放入 CI Gradle 属性；真实值由项目所有者确定。
+mapFusionGroup=com.example.mapfusion
+mapFusionVersion=1.0.0
+mapFusionRepositoryUrl=https://your.maven.repository/releases
+mapFusionRequirePublicationMetadata=true
+mapFusionPomUrl=https://your.project.homepage
+mapFusionPomLicenseName=Your license name
+mapFusionPomLicenseUrl=https://your.license.url
+mapFusionPomDeveloperId=your-developer-id
+mapFusionPomDeveloperName=Your developer name
+mapFusionPomDeveloperEmail=developer@example.com
+mapFusionPomScmConnection=scm:git:https://your.scm.host/owner/repository.git
+mapFusionPomScmDeveloperConnection=scm:git:ssh://git@your.scm.host/owner/repository.git
+mapFusionPomScmUrl=https://your.scm.host/owner/repository
+mapFusionSignPublications=true
+
+# 不要把以下敏感项写入仓库。通过 CI 环境变量注入：
+# MAP_FUSION_REPOSITORY_USERNAME
+# MAP_FUSION_REPOSITORY_PASSWORD
+# MAP_FUSION_SIGNING_KEY
+# MAP_FUSION_SIGNING_PASSWORD
