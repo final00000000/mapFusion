@@ -33,6 +33,23 @@ import android.widget.Switch
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.mapfusion.demo.data.DemoConsentStore
+import com.mapfusion.demo.data.DemoRequestRepository
+import com.mapfusion.demo.data.PrivacyDecision
+import com.mapfusion.demo.presentation.main.DemoMapSettings
+import com.mapfusion.demo.presentation.main.DemoStatus
+import com.mapfusion.demo.presentation.main.DemoStatusKind
+import com.mapfusion.demo.presentation.main.DemoToolCategory
+import com.mapfusion.demo.presentation.main.LocationPermissionAction
+import com.mapfusion.demo.presentation.main.MainViewModel
+import com.mapfusion.demo.map.DemoMapSettingsApplier
+import com.mapfusion.demo.map.DemoOverlayController
+import com.mapfusion.demo.map.DemoOverlayStore
+import kotlinx.coroutines.launch
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
@@ -40,7 +57,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.mapfusion.api.MapConfig
 import com.mapfusion.api.MapProvider
-import com.mapfusion.api.async.RequestScope
 import com.mapfusion.api.capability.MapController
 import com.mapfusion.api.capability.Provider
 import com.mapfusion.api.capability.TrackListener
@@ -106,17 +122,6 @@ import com.mapfusion.factory.MapFusionSession
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 
-private enum class LocationPermissionAction { LOCATE, START_TRACK, START_NAVIGATION }
-
-private enum class PrivacyDecision { UNDECIDED, ACCEPTED, DECLINED }
-
-private enum class DemoToolCategory(val title: String) {
-    COMMON("常用"),
-    NAVIGATION("导航"),
-    SEARCH("查询服务"),
-    OVERLAY("覆盖物"),
-    TRACK("轨迹"),
-}
 
 private enum class ActionVariant { DEFAULT, PRIMARY, DANGER }
 
@@ -126,16 +131,6 @@ private data class DemoAction(
     val variant: ActionVariant = ActionVariant.DEFAULT,
 )
 
-private data class DemoMapSettings(
-    var mapType: MapType = MapType.NORMAL,
-    var mapLanguage: MapLanguage = MapLanguage.CHINESE,
-    var trafficEnabled: Boolean = false,
-    var buildingsEnabled: Boolean = true,
-    var indoorEnabled: Boolean = false,
-    var mapPoiEnabled: Boolean = true,
-    var compassEnabled: Boolean = true,
-    var zoomControlsEnabled: Boolean = true,
-)
 
 /** 同一套业务调用通过唯一配置点切换百度/高德。 */
 class MainActivity : ComponentActivity() {
@@ -153,25 +148,53 @@ class MainActivity : ComponentActivity() {
     private var mapController: MapController? = null
     private var mapSession: MapFusionSession? = null
     private var trackRecorder: TrackRecorder? = null
-    private var lastLocation: MapLocation? = null
+    private val viewModel: MainViewModel by viewModels()
+    private val consentStore by lazy { DemoConsentStore(this) }
+    private val requestRepository = DemoRequestRepository()
+    private val demoOverlays = DemoOverlayStore()
+    private var renderedCategory: DemoToolCategory? = null
     private var activityResumed = false
-    private var providerEpoch = 0
-    private var selectedRouteMode = TravelMode.DRIVING
-    private var selectedNavigationMode = EmbeddedNavigationMode.REAL
-    private var selectedToolCategory = DemoToolCategory.COMMON
-    private var embeddedNavigationActive = false
-    private var mapSettings = DemoMapSettings()
-    private var pendingLocationAction: LocationPermissionAction? = null
-    private var locationPermissionRequestInFlight = false
-    private var locationPermissionDenied = false
-    private var locationPermissionPermanentlyDenied = false
+    private val providerEpoch get() = requestRepository.generation
+    private var lastLocation: MapLocation?
+        get() = viewModel.state.value.lastLocation
+        set(value) { viewModel.update { it.copy(lastLocation = value) } }
+    private var selectedRouteMode: TravelMode
+        get() = viewModel.state.value.routeMode
+        set(value) { viewModel.update { it.copy(routeMode = value) } }
+    private var selectedNavigationMode: EmbeddedNavigationMode
+        get() = viewModel.state.value.navigationMode
+        set(value) { viewModel.update { it.copy(navigationMode = value) } }
+    private var selectedToolCategory: DemoToolCategory
+        get() = viewModel.state.value.toolCategory
+        set(value) { viewModel.update { it.copy(toolCategory = value) } }
+    private var embeddedNavigationActive: Boolean
+        get() = viewModel.state.value.embeddedNavigationActive
+        set(value) { viewModel.update { it.copy(embeddedNavigationActive = value) } }
+    private var mapSettings: DemoMapSettings
+        get() = viewModel.state.value.mapSettings
+        set(value) { viewModel.update { it.copy(mapSettings = value) } }
+    private var pendingLocationAction: LocationPermissionAction?
+        get() = viewModel.state.value.pendingLocationAction
+        set(value) { viewModel.update { it.copy(pendingLocationAction = value) } }
+    private var locationPermissionRequestInFlight: Boolean
+        get() = viewModel.state.value.permissionRequestInFlight
+        set(value) { viewModel.update { it.copy(permissionRequestInFlight = value) } }
+    private var locationPermissionDenied: Boolean
+        get() = viewModel.state.value.permissionDenied
+        set(value) { viewModel.update { it.copy(permissionDenied = value) } }
+    private var locationPermissionPermanentlyDenied: Boolean
+        get() = viewModel.state.value.permissionPermanentlyDenied
+        set(value) { viewModel.update { it.copy(permissionPermanentlyDenied = value) } }
+    private var privacyDecision: PrivacyDecision
+        get() = viewModel.state.value.privacyDecision
+        set(value) { viewModel.update { it.copy(privacyDecision = value) } }
+    private var preferredProvider: Provider
+        get() = viewModel.state.value.preferredProvider
+        set(value) { viewModel.selectProvider(value) }
     private var locationSettingsDialog: AlertDialog? = null
     private var privacyDialog: AlertDialog? = null
-    private var privacyDecision = PrivacyDecision.UNDECIDED
-    private var preferredProvider = Provider.BAIDU
     private var pendingMapSavedState: Bundle? = null
     private var factoriesRegistered = false
-    private val requestScope = RequestScope()
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -199,40 +222,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        pendingLocationAction = savedInstanceState
-            ?.getString(STATE_PENDING_LOCATION_ACTION)
-            ?.let { value -> runCatching { LocationPermissionAction.valueOf(value) }.getOrNull() }
-        locationPermissionRequestInFlight = savedInstanceState
-            ?.getBoolean(STATE_LOCATION_PERMISSION_REQUEST_IN_FLIGHT)
-            ?: false
-        locationPermissionDenied = savedInstanceState?.getBoolean(STATE_LOCATION_PERMISSION_DENIED) ?: false
-        locationPermissionPermanentlyDenied = savedInstanceState
-            ?.getBoolean(STATE_LOCATION_PERMISSION_PERMANENTLY_DENIED)
-            ?: false
-        selectedRouteMode = savedInstanceState
-            ?.getString(STATE_ROUTE_MODE)
-            ?.let { value -> runCatching { TravelMode.valueOf(value) }.getOrNull() }
-            ?: TravelMode.DRIVING
-        selectedNavigationMode = savedInstanceState
-            ?.getString(STATE_NAVIGATION_MODE)
-            ?.let { value -> runCatching { EmbeddedNavigationMode.valueOf(value) }.getOrNull() }
-            ?: EmbeddedNavigationMode.REAL
-        selectedToolCategory = savedInstanceState
-            ?.getString(STATE_TOOL_CATEGORY)
-            ?.let { value -> runCatching { DemoToolCategory.valueOf(value) }.getOrNull() }
-            ?: DemoToolCategory.COMMON
-        privacyDecision = readPrivacyDecision()
-        preferredProvider = (savedInstanceState
-            ?.getString(STATE_PREFERRED_PROVIDER)
-            ?.let { value -> runCatching { Provider.valueOf(value) }.getOrNull() }
-            ?: savedInstanceState
-                ?.getString(STATE_PROVIDER)
-                ?.let { value -> runCatching { Provider.valueOf(value) }.getOrNull() }
-            ?: DemoOfficialNaviSdk.defaultProvider)
-            .takeIf(DemoOfficialNaviSdk::supportsMapProvider)
-            ?: DemoOfficialNaviSdk.defaultProvider
+        viewModel.configureProviders(DemoOfficialNaviSdk.defaultProvider,
+            Provider.entries.filter(DemoOfficialNaviSdk::supportsMapProvider).toSet())
+        viewModel.resetSessionState()
+        privacyDecision = consentStore.read()
         pendingMapSavedState = savedInstanceState?.getBundle(STATE_MAP)
         setContentView(buildContentView())
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.state.collect { state ->
+                    renderResult(state.status)
+                    if (renderedCategory != state.toolCategory) renderToolCategory(state.toolCategory)
+                }
+            }
+        }
         if (hasPrivacyConsent()) {
             switchProvider(preferredProvider, pendingMapSavedState)
         } else {
@@ -473,24 +476,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun readPrivacyDecision(): PrivacyDecision {
-        val value = getSharedPreferences(PRIVACY_PREFERENCES, MODE_PRIVATE)
-            .getString(PRIVACY_DECISION_KEY, null)
-            ?: return PrivacyDecision.UNDECIDED
-        return runCatching { PrivacyDecision.valueOf(value) }.getOrDefault(PrivacyDecision.UNDECIDED)
-    }
+    private fun readPrivacyDecision(): PrivacyDecision = consentStore.read()
 
     /** 使用同步提交，只有状态确实落盘后才允许初始化或确认撤回。 */
     private fun persistPrivacyDecision(decision: PrivacyDecision): Boolean {
-        val saved = getSharedPreferences(PRIVACY_PREFERENCES, MODE_PRIVATE)
-            .edit()
-            .putString(PRIVACY_DECISION_KEY, decision.name)
-            .commit()
+        val saved = consentStore.save(decision)
         if (saved) privacyDecision = decision
         return saved
     }
 
-    private fun hasPrivacyConsent(): Boolean = privacyDecision == PrivacyDecision.ACCEPTED
+    private fun hasPrivacyConsent(): Boolean = privacyDecision == PrivacyDecision.ACCEPTED && consentStore.hasConsent()
 
     private fun ensurePrivacyConsentForAction(): Boolean {
         if (hasPrivacyConsent()) return true
@@ -567,8 +562,8 @@ class MainActivity : ComponentActivity() {
 
     /** 撤回同意时主动终止所有会话资源，并通过 epoch 丢弃已在途的迟到回调。 */
     private fun stopMapDataProcessing() {
-        providerEpoch++
-        requestScope.cancelAll()
+        requestRepository.invalidateSession()
+        releaseDemoOverlays()
         preferredProvider = currentProvider?.provider ?: preferredProvider
         pendingMapSavedState = null
         pendingLocationAction = null
@@ -579,7 +574,6 @@ class MainActivity : ComponentActivity() {
         mapController = null
         lastLocation = null
         embeddedNavigationActive = false
-        mapSettings = DemoMapSettings()
         runCatching(::releaseTrackRecorder).onFailure { error ->
             Log.w(TAG, "隐私撤回时释放轨迹失败", error)
         }
@@ -608,15 +602,14 @@ class MainActivity : ComponentActivity() {
         }
         registerFactoriesIfNeeded()
         pendingMapSavedState = null
-        providerEpoch++
-        requestScope.cancelAll()
+        requestRepository.invalidateSession()
+        releaseDemoOverlays()
         val previousSession = mapSession
         mapSession = null
         currentProvider = null
         mapController = null
         lastLocation = null
         embeddedNavigationActive = false
-        mapSettings = DemoMapSettings()
         runCatching(::releaseTrackRecorder).onFailure { error ->
             Log.w(TAG, "释放旧轨迹失败", error)
         }
@@ -647,7 +640,7 @@ class MainActivity : ComponentActivity() {
             val session = MapFusion.openSession(this, config, savedState)
             candidateSession = session
             val createdProvider = session.provider
-            val controller = session.mapController
+            val controller = DemoOverlayController(session.mapController, demoOverlays)
             if (activityResumed) session.onResume()
             (controller.view.parent as? ViewGroup)?.removeView(controller.view)
             mapContainer.addView(
@@ -657,12 +650,12 @@ class MainActivity : ComponentActivity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ),
             )
-            when (val result = controller.applyUiOptions(MapUiOptions(scaleControlsEnabled = true, compassEnabled = true))) {
-                is MapResult.Success -> Unit
-                is MapResult.Failure -> error("地图 UI 初始化失败：${result.error.message}")
+            when (val result = DemoMapSettingsApplier.apply(controller, mapSettings)) {
+                is MapResult.Success -> mapSettings = result.data
+                is MapResult.Failure -> error("地图设置恢复失败：${result.error.message}")
             }
             bindMapInteractionDemo(controller)
-            controller.moveCamera(CameraUpdate(target = defaultPoint(provider), zoom = 14f, animated = false))
+            if (savedState == null) controller.moveCamera(CameraUpdate(target = defaultPoint(provider), zoom = 14f, animated = false))
             currentProvider = createdProvider
             mapController = controller
             mapSession = session
@@ -854,6 +847,9 @@ class MainActivity : ComponentActivity() {
     private fun startTrackInternal() = startSync("开始轨迹") {
         val provider = requireNotNull(currentProvider) { "地图尚未初始化" }
         val controller = requireNotNull(mapController) { "地图尚未初始化" }
+        mapSession?.embeddedNavigator?.stop()
+        embeddedNavigationActive = false
+        releaseTrackRecorder()
         mapSession?.locationDisplay?.stop()
         controller.clearDemoOverlays()
         val recorder = requireNotNull(mapSession?.createTrackRecorder()) {
@@ -919,13 +915,11 @@ class MainActivity : ComponentActivity() {
         trackRecorder = null
     }
 
-    private fun MapController.clearDemoOverlays() {
-        if (embeddedNavigationActive) {
-            mapSession?.embeddedNavigator?.stop()
-            embeddedNavigationActive = false
-        }
-        releaseTrackRecorder()
-        clearOverlays()
+    /** 只清查询/覆盖物演示，不影响 Session 的定位、导航和轨迹句柄。 */
+    private fun MapController.clearDemoOverlays() = demoOverlays.clear()
+
+    private fun releaseDemoOverlays() {
+        runCatching(demoOverlays::clear).onFailure { Log.w(TAG, "释放演示覆盖物失败", it) }
     }
 
     private fun showTrackState(snapshot: TrackSnapshot) {
@@ -953,8 +947,9 @@ class MainActivity : ComponentActivity() {
 
     private fun demoGeocode() = startAsync("地址解析") { epoch ->
         val geocoder = requireNotNull(mapSession?.geocoder) { "当前厂商不支持地理编码" }
-        requestScope.replace("geocode", geocoder.geocode(
-            GeocodeRequest(address = "天安门", city = "北京"),
+        requestRepository.execute("geocode", { callback ->
+            geocoder.geocode(GeocodeRequest(address = "天安门", city = "北京"), callback)
+        },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -970,14 +965,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun demoReverseGeocode() = startAsync("逆地理") { epoch ->
         val point = operationCenter()
         val geocoder = requireNotNull(mapSession?.geocoder) { "当前厂商不支持逆地理编码" }
-        requestScope.replace("reverseGeocode", geocoder.reverseGeocode(
-            point,
+        requestRepository.execute("reverseGeocode", { callback -> geocoder.reverseGeocode(point, callback) },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -989,21 +983,16 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun demoPoiSearch() = startAsync("周边 POI") { epoch ->
         val center = operationCenter()
         val searcher = requireNotNull(mapSession?.poiSearcher) { "当前厂商不支持 POI 搜索" }
-        requestScope.replace("poi", searcher.search(
-            PoiSearchRequest(
-                type = PoiSearchType.NEARBY,
-                keyword = "咖啡",
-                center = center,
-                radiusMeters = 2_000,
-                pageSize = 15,
-                sort = PoiSort.DISTANCE,
-            ),
+        requestRepository.execute("poi", { callback ->
+            searcher.search(PoiSearchRequest(type = PoiSearchType.NEARBY, keyword = "咖啡", center = center,
+                radiusMeters = 2_000, pageSize = 15, sort = PoiSort.DISTANCE), callback)
+        },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1012,7 +1001,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun showPoiResult(center: LatLng, result: PoiSearchResult) {
@@ -1031,8 +1020,9 @@ class MainActivity : ComponentActivity() {
 
     private fun demoDistrict() = startAsync("行政区搜索") { epoch ->
         val searcher = requireNotNull(mapSession?.districtSearcher) { "当前厂商不支持行政区搜索" }
-        requestScope.replace("district", searcher.search(
-            DistrictSearchRequest(keyword = "海淀区", city = "北京", showBoundary = true),
+        requestRepository.execute("district", { callback ->
+            searcher.search(DistrictSearchRequest(keyword = "海淀区", city = "北京", showBoundary = true), callback)
+        },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1041,7 +1031,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun showDistrictResult(result: DistrictSearchResult) {
@@ -1079,8 +1069,7 @@ class MainActivity : ComponentActivity() {
 
     private fun demoWeatherNow() = startAsync("实时天气") { epoch ->
         val service = requireNotNull(mapSession?.weatherService) { "当前厂商不支持天气服务" }
-        requestScope.replace("weatherNow", service.current(
-            demoWeatherRequest(),
+        requestRepository.execute("weatherNow", { callback -> service.current(demoWeatherRequest(), callback) },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1089,7 +1078,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun showWeatherNow(weather: WeatherNow) {
@@ -1105,8 +1094,7 @@ class MainActivity : ComponentActivity() {
 
     private fun demoWeatherForecast() = startAsync("天气预报") { epoch ->
         val service = requireNotNull(mapSession?.weatherService) { "当前厂商不支持天气服务" }
-        requestScope.replace("weatherForecast", service.forecast(
-            demoWeatherRequest(),
+        requestRepository.execute("weatherForecast", { callback -> service.forecast(demoWeatherRequest(), callback) },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1115,7 +1103,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun showWeatherForecast(forecast: WeatherForecast) {
@@ -1257,7 +1245,7 @@ class MainActivity : ComponentActivity() {
             ?.supportedMapLanguages()
             ?.let { supported -> MapLanguage.entries.filter(supported::contains) }
             .orEmpty()
-        val draft = mapSettings.copy(
+        var draft = mapSettings.copy(
             mapType = controller?.getMapType() ?: mapSettings.mapType,
             mapLanguage = mapSettings.mapLanguage.takeIf(mapLanguages::contains)
                 ?: mapLanguages.firstOrNull()
@@ -1300,12 +1288,12 @@ class MainActivity : ComponentActivity() {
         val switchesCard = DemoTheme.dialogSectionCard(this).apply {
             setPadding(dp(12), dp(6), dp(12), dp(6))
         }
-        switchesCard.addView(settingSwitch("实时交通", draft.trafficEnabled) { draft.trafficEnabled = it })
-        switchesCard.addView(settingSwitch("3D 建筑", draft.buildingsEnabled) { draft.buildingsEnabled = it })
-        switchesCard.addView(settingSwitch("室内地图", draft.indoorEnabled) { draft.indoorEnabled = it })
-        switchesCard.addView(settingSwitch("底图 POI", draft.mapPoiEnabled) { draft.mapPoiEnabled = it })
-        switchesCard.addView(settingSwitch("指南针", draft.compassEnabled) { draft.compassEnabled = it })
-        switchesCard.addView(settingSwitch("缩放控件", draft.zoomControlsEnabled) { draft.zoomControlsEnabled = it })
+        switchesCard.addView(settingSwitch("实时交通", draft.trafficEnabled) { draft = draft.copy(trafficEnabled = it) })
+        switchesCard.addView(settingSwitch("3D 建筑", draft.buildingsEnabled) { draft = draft.copy(buildingsEnabled = it) })
+        switchesCard.addView(settingSwitch("室内地图", draft.indoorEnabled) { draft = draft.copy(indoorEnabled = it) })
+        switchesCard.addView(settingSwitch("底图 POI", draft.mapPoiEnabled) { draft = draft.copy(mapPoiEnabled = it) })
+        switchesCard.addView(settingSwitch("指南针", draft.compassEnabled) { draft = draft.copy(compassEnabled = it) })
+        switchesCard.addView(settingSwitch("缩放控件", draft.zoomControlsEnabled) { draft = draft.copy(zoomControlsEnabled = it) })
         panel.addView(
             switchesCard,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
@@ -1352,10 +1340,8 @@ class MainActivity : ComponentActivity() {
             )
             .setNegativeButton("取消", null)
             .setPositiveButton("应用") { _, _ ->
-                draft.mapType = mapTypes[typeSpinner.selectedItemPosition]
-                if (languageSpinner != null) {
-                    draft.mapLanguage = mapLanguages[languageSpinner.selectedItemPosition]
-                }
+                draft = draft.copy(mapType = mapTypes[typeSpinner.selectedItemPosition],
+                    mapLanguage = languageSpinner?.let { mapLanguages[it.selectedItemPosition] } ?: draft.mapLanguage)
                 applyMapSettings(draft)
             }
             .show()
@@ -1363,42 +1349,15 @@ class MainActivity : ComponentActivity() {
 
     private fun applyMapSettings(settings: DemoMapSettings) = startSync("应用地图设置") {
         val controller = requireNotNull(mapController) { "地图尚未初始化" }
-        val appliedType = when (val result = controller.applyMapType(settings.mapType)) {
+        val applied = when (val result = DemoMapSettingsApplier.apply(controller, settings)) {
             is MapResult.Success -> result.data
             is MapResult.Failure -> {
-                showMapError("地图类型应用失败", result.error)
+                showMapError("地图设置应用失败", result.error)
                 return@startSync
             }
         }
-        if (controller.supportedMapLanguages().isNotEmpty()) {
-            when (val result = controller.applyMapLanguage(settings.mapLanguage)) {
-                is MapResult.Success -> settings.mapLanguage = result.data
-                is MapResult.Failure -> {
-                    showMapError("底图语言应用失败", result.error)
-                    return@startSync
-                }
-            }
-        }
-        controller.setTrafficEnabled(settings.trafficEnabled)
-        controller.setBuildingsEnabled(settings.buildingsEnabled)
-        controller.setIndoorEnabled(settings.indoorEnabled)
-        controller.setMapPoiEnabled(settings.mapPoiEnabled)
-        when (
-            val result = controller.applyUiOptions(
-                MapUiOptions(
-                    zoomControlsEnabled = settings.zoomControlsEnabled,
-                    scaleControlsEnabled = true,
-                    compassEnabled = settings.compassEnabled,
-                ),
-            )
-        ) {
-            is MapResult.Success -> Unit
-            is MapResult.Failure -> {
-                showMapError("地图 UI 设置失败", result.error)
-                return@startSync
-            }
-        }
-        mapSettings = settings.copy(mapType = appliedType)
+        mapSettings = applied
+        val appliedType = applied.mapType
         val toggles = listOfNotNull(
             "交通".takeIf { settings.trafficEnabled },
             "建筑".takeIf { settings.buildingsEnabled },
@@ -1408,7 +1367,7 @@ class MainActivity : ComponentActivity() {
         ).joinToString("、").ifBlank { "基础图层均关闭" }
         showSuccess(
             "地图设置已应用 · ${appliedType.displayName()}",
-            "$toggles · ${settings.mapLanguage.displayName()}",
+            "$toggles · ${applied.mapLanguage.displayName()}",
         )
     }
 
@@ -1465,8 +1424,7 @@ class MainActivity : ComponentActivity() {
             destination = destination,
             city = "北京".takeIf { mode.canonical() == TravelMode.TRANSIT },
         )
-        requestScope.replace("route", planner.plan(
-            request,
+        requestRepository.execute("route", { callback -> planner.plan(request, callback) },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1475,7 +1433,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun showRouteResult(request: RouteRequest, result: RouteResult) {
@@ -1536,8 +1494,11 @@ class MainActivity : ComponentActivity() {
                 simulationIntervalMillis = 500L,
             ),
         )
+        val epoch = providerEpoch
         when (val result = navigator.start(request) { event ->
-            deliver(providerEpoch) { showEmbeddedNavigationEvent(mode, navigationMode, event) }
+            deliver(epoch) {
+                if (mapSession === session) showEmbeddedNavigationEvent(mode, navigationMode, event)
+            }
         }) {
             is MapResult.Success -> {
                 embeddedNavigationActive = true
@@ -1686,7 +1647,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun demoSnapshot() = startAsync("地图截图") { epoch ->
-        requestScope.replace("snapshot", requireNotNull(mapController) { "地图尚未初始化" }.snapshot(
+        val controller = requireNotNull(mapController) { "地图尚未初始化" }
+        requestRepository.execute("snapshot", { callback -> controller.snapshot(callback) },
             MapCallback { result ->
                 deliver(epoch) {
                     when (result) {
@@ -1698,7 +1660,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             },
-        ))
+        )
     }
 
     private fun demoMarker() = replaceOverlay("Marker", 16f) { center, _, _, _ ->
@@ -1830,8 +1792,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun clearMap() = startSync("清空地图") {
-        requireNotNull(mapController) { "地图尚未初始化" }.clearDemoOverlays()
-        showSuccess("地图已清空", "没有业务覆盖物")
+        val controller = requireNotNull(mapController) { "地图尚未初始化" }
+        mapSession?.embeddedNavigator?.stop()
+        embeddedNavigationActive = false
+        releaseTrackRecorder()
+        mapSession?.locationDisplay?.stop()
+        demoOverlays.clear()
+        controller.clearOverlays()
+        showSuccess("地图已清空", "已停止导航、轨迹和定位展示，移除全部覆盖物")
     }
 
     private fun operationCenter(): LatLng = lastLocation?.position ?: defaultPoint()
@@ -1920,7 +1888,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun deliver(epoch: Int, block: () -> Unit) = runOnUiThread {
-        if (epoch == providerEpoch && !isFinishing && !isDestroyed) block()
+        if (requestRepository.accepts(epoch) && !isFinishing && !isDestroyed && hasPrivacyConsent()) block()
     }
 
     private fun showMapError(title: String, error: MapError) {
@@ -1935,7 +1903,12 @@ class MainActivity : ComponentActivity() {
     private fun showError(title: String, detail: String) = showResult(title, detail, StatusTone.ERROR)
 
     private fun showResult(title: String, detail: String, tone: StatusTone) {
-        resultView.text = DemoTheme.formatStatusText(title, detail, tone)
+        viewModel.update { it.copy(status = DemoStatus(title, detail, DemoStatusKind.valueOf(tone.name))) }
+    }
+
+    private fun renderResult(status: DemoStatus) {
+        val tone = StatusTone.valueOf(status.kind.name)
+        resultView.text = DemoTheme.formatStatusText(status.title, status.detail, tone)
         resultView.background = DemoTheme.roundedRect(
             context = this,
             fillColor = tone.cardBgColor,
@@ -2048,6 +2021,11 @@ class MainActivity : ComponentActivity() {
 
     private fun showToolCategory(category: DemoToolCategory) {
         selectedToolCategory = category
+        renderToolCategory(category)
+    }
+
+    private fun renderToolCategory(category: DemoToolCategory) {
+        renderedCategory = category
         toolCategoryButtons.forEach { (item, button) -> styleToolCategoryButton(button, item == category) }
         toolActionGrid.removeAllViews()
         val actions = toolActions(category)
@@ -2352,6 +2330,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        val latestConsent = readPrivacyDecision()
+        if (privacyDecision == PrivacyDecision.ACCEPTED && latestConsent != PrivacyDecision.ACCEPTED) {
+            privacyDecision = latestConsent
+            stopMapDataProcessing()
+            showPrivacyUnavailableState()
+        } else privacyDecision = latestConsent
         activityResumed = true
         mapSession?.onResume()
         val action = pendingLocationAction
@@ -2374,23 +2358,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        currentProvider?.provider?.let { outState.putString(STATE_PROVIDER, it.name) }
-        outState.putString(STATE_PREFERRED_PROVIDER, preferredProvider.name)
-        pendingLocationAction?.let { outState.putString(STATE_PENDING_LOCATION_ACTION, it.name) }
-        outState.putString(STATE_ROUTE_MODE, selectedRouteMode.name)
-        outState.putString(STATE_NAVIGATION_MODE, selectedNavigationMode.name)
-        outState.putString(STATE_TOOL_CATEGORY, selectedToolCategory.name)
-        outState.putBoolean(STATE_LOCATION_PERMISSION_REQUEST_IN_FLIGHT, locationPermissionRequestInFlight)
-        outState.putBoolean(STATE_LOCATION_PERMISSION_DENIED, locationPermissionDenied)
-        outState.putBoolean(STATE_LOCATION_PERMISSION_PERMANENTLY_DENIED, locationPermissionPermanentlyDenied)
         val mapState = Bundle()
         mapSession?.onSaveInstanceState(mapState)
         outState.putBundle(STATE_MAP, mapState)
     }
 
     override fun onDestroy() {
-        providerEpoch++
-        requestScope.close()
+        requestRepository.close()
+        releaseDemoOverlays()
         privacyDialog?.dismiss()
         privacyDialog = null
         locationSettingsDialog?.dismiss()
@@ -2411,18 +2386,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val TAG = "MapFusionDemo"
-        const val STATE_PROVIDER = "mapfusion.provider"
-        const val STATE_PREFERRED_PROVIDER = "mapfusion.preferred_provider"
         const val STATE_MAP = "mapfusion.map_state"
-        const val STATE_PENDING_LOCATION_ACTION = "mapfusion.pending_location_action"
-        const val STATE_ROUTE_MODE = "mapfusion.route_mode"
-        const val STATE_NAVIGATION_MODE = "mapfusion.navigation_mode"
-        const val STATE_TOOL_CATEGORY = "mapfusion.tool_category"
-        const val STATE_LOCATION_PERMISSION_REQUEST_IN_FLIGHT = "mapfusion.location_permission_in_flight"
-        const val STATE_LOCATION_PERMISSION_DENIED = "mapfusion.location_permission_denied"
-        const val STATE_LOCATION_PERMISSION_PERMANENTLY_DENIED = "mapfusion.location_permission_permanently_denied"
-        const val PRIVACY_PREFERENCES = "mapfusion.demo.privacy"
-        const val PRIVACY_DECISION_KEY = "privacy_decision"
         const val PRIVACY_NOTICE =
             "Map Fusion Demo 使用百度地图和高德地图服务。只有在你点击“同意并启用”后，" +
                 "应用才会初始化当前选择的地图厂商 SDK。\n\n" +

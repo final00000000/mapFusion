@@ -24,9 +24,13 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.mapfusion.api.capability.OfficialNavigator
 import com.mapfusion.api.capability.Provider
 import com.mapfusion.api.model.CoordType
@@ -45,6 +49,11 @@ import com.mapfusion.api.model.OfficialNavigationState
 import com.mapfusion.api.model.OfficialRouteSummary
 import com.mapfusion.api.model.RouteRequest
 import com.mapfusion.api.model.TravelMode
+import com.mapfusion.demo.data.DemoConsentStore
+import com.mapfusion.demo.presentation.navigation.NaviTone
+import com.mapfusion.demo.presentation.navigation.OfficialNavigationUiState
+import com.mapfusion.demo.presentation.navigation.OfficialNavigationViewModel
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 /** 仅使用 Map Fusion 统一契约承载两家厂商的官方 App 内导航 View。 */
@@ -69,22 +78,50 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     private val modeButtons = linkedMapOf<OfficialNavigationMode, Button>()
     private val travelModeButtons = linkedMapOf<TravelMode, Button>()
+    private val viewModel: OfficialNavigationViewModel by viewModels()
+    private val consentStore by lazy { DemoConsentStore(this) }
+    private var consentGranted = false
+    private var sessionEpoch = 0
     private var provider: Provider? = null
     private var capabilities: OfficialNavigationCapabilities? = null
     private var navigator: OfficialNavigator? = null
-    private var navigationState = OfficialNavigationState.INITIALIZING
-    private var selectedNavigationMode = OfficialNavigationMode.REAL
-    private var selectedTravelMode = TravelMode.DRIVING
-    private var simulationSpeed = DEFAULT_SIMULATION_SPEED
-    private var voiceGuidanceEnabled = true
-    private var dayNightMode = OfficialNavigationDayNightMode.AUTO
-    private var routeSummaries: List<OfficialRouteSummary> = emptyList()
-    private var selectedRouteIndex = 0
-    private var startRequestPending = false
-    private var navigationStarted = false
-    private var pendingRealNavigationStart = false
     private var origin = DEFAULT_ORIGIN
     private var destination = DEFAULT_DESTINATION
+
+    // 旧属性的薄代理：保持既有调用点，同时让唯一可变状态归 ViewModel 所有。
+    private var navigationState: OfficialNavigationState
+        get() = viewModel.state.value.navigationState
+        set(value) { viewModel.update { it.copy(navigationState = value) } }
+    private var selectedNavigationMode: OfficialNavigationMode
+        get() = viewModel.state.value.navigationMode
+        set(value) { viewModel.selectNavigationMode(value) }
+    private var selectedTravelMode: TravelMode
+        get() = viewModel.state.value.travelMode
+        set(value) { viewModel.selectTravelMode(value) }
+    private var simulationSpeed: Int
+        get() = viewModel.state.value.simulationSpeed
+        set(value) { viewModel.setSimulationSpeed(value) }
+    private var voiceGuidanceEnabled: Boolean
+        get() = viewModel.state.value.voiceGuidanceEnabled
+        set(value) { viewModel.setVoiceGuidanceEnabled(value) }
+    private var dayNightMode: OfficialNavigationDayNightMode
+        get() = viewModel.state.value.dayNightMode
+        set(value) { viewModel.setDayNightMode(value) }
+    private var routeSummaries: List<OfficialRouteSummary>
+        get() = viewModel.state.value.routeSummaries
+        set(value) { viewModel.update { it.copy(routeSummaries = value) } }
+    private var selectedRouteIndex: Int
+        get() = viewModel.state.value.selectedRouteIndex
+        set(value) { viewModel.update { it.copy(selectedRouteIndex = value) } }
+    private var startRequestPending: Boolean
+        get() = viewModel.state.value.startRequestPending
+        set(value) { viewModel.update { it.copy(startRequestPending = value) } }
+    private var navigationStarted: Boolean
+        get() = viewModel.state.value.navigationStarted
+        set(value) { viewModel.update { it.copy(navigationStarted = value) } }
+    private var pendingRealNavigationStart: Boolean
+        get() = viewModel.state.value.pendingRealNavigationStart
+        set(value) { viewModel.update { it.copy(pendingRealNavigationStart = value) } }
 
     /**
      * Vendor navigation engines initialize asynchronously and may finish before
@@ -95,8 +132,12 @@ class OfficialNavigationActivity : ComponentActivity() {
     private val statePollHandler = Handler(Looper.getMainLooper())
     private val statePollRunnable = object : Runnable {
         override fun run() {
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
             syncNavigatorState()
-            if (!isFinishing && navigator != null && navigationState == OfficialNavigationState.INITIALIZING) {
+            if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                !isFinishing && !isDestroyed && consentGranted &&
+                navigator != null && navigationState == OfficialNavigationState.INITIALIZING
+            ) {
                 statePollHandler.postDelayed(this, STATE_POLL_INTERVAL_MS)
             }
         }
@@ -138,42 +179,30 @@ class OfficialNavigationActivity : ComponentActivity() {
             setContentView(fatalView("缺少官方导航厂商参数"))
             return
         }
-        capabilities = DemoOfficialNaviSdk.capabilities(selectedProvider)
-        if (capabilities == null) {
+        val selectedCapabilities = DemoOfficialNaviSdk.capabilities(selectedProvider)
+        if (selectedCapabilities == null) {
             setContentView(fatalView("当前 Demo 变体未装载${selectedProvider.displayName()}官方导航"))
             return
         }
-        selectedNavigationMode = savedInstanceState
-            ?.getString(STATE_MODE)
-            ?.let { value -> runCatching { OfficialNavigationMode.valueOf(value) }.getOrNull() }
-            ?.takeIf { capabilities?.supports(it) == true }
-            ?: capabilities?.modes?.firstOrNull()
-            ?: OfficialNavigationMode.REAL
-        selectedTravelMode = savedInstanceState
-            ?.getString(STATE_TRAVEL_MODE)
-            ?.let { value -> runCatching { TravelMode.valueOf(value) }.getOrNull() }
-            ?.takeIf { capabilities?.supports(it) == true }
-            ?: orderedTravelModes().firstOrNull()
-            ?: TravelMode.DRIVING
-        simulationSpeed = savedInstanceState
-            ?.getInt(STATE_SIMULATION_SPEED, DEFAULT_SIMULATION_SPEED)
-            ?.coerceIn(MIN_SIMULATION_SPEED, MAX_SIMULATION_SPEED)
-            ?: DEFAULT_SIMULATION_SPEED
-        voiceGuidanceEnabled = savedInstanceState?.getBoolean(STATE_VOICE_GUIDANCE, true) ?: true
-        dayNightMode = savedInstanceState
-            ?.getString(STATE_DAY_NIGHT_MODE)
-            ?.let { value -> runCatching { OfficialNavigationDayNightMode.valueOf(value) }.getOrNull() }
-            ?: OfficialNavigationDayNightMode.AUTO
+        capabilities = selectedCapabilities
+        consentGranted = consentStore.hasConsent()
+        viewModel.configureCapabilities(selectedCapabilities.modes, selectedCapabilities.travelModes)
+        viewModel.resetRuntimeSession()
 
         setContentView(buildContentView())
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.state.collect { state -> render(state) }
+            }
+        }
         createNavigator(savedInstanceState?.getBundle(STATE_NAVIGATOR))
     }
 
     private fun createNavigator(savedState: Bundle?) {
         val selectedProvider = provider ?: return
-        if (!hasPrivacyConsent()) {
-            showError("地图隐私同意已失效，请返回首页重新确认")
-            disableNavigationControls()
+        if (!refreshConsent()) {
+            viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+            renderState()
             return
         }
         when (val privacy = DemoOfficialNaviSdk.updatePrivacyConsent(this, selectedProvider, true)) {
@@ -186,6 +215,7 @@ class OfficialNavigationActivity : ComponentActivity() {
         }
         when (val result = DemoOfficialNaviSdk.createNavigator(this, selectedProvider, savedState)) {
             is MapResult.Success -> {
+                sessionEpoch += 1
                 navigator = result.data
                 navigationState = result.data.state
                 if (result.data.capabilities.supports(OfficialNavigationFeature.VOICE_CONTROL)) {
@@ -204,7 +234,6 @@ class OfficialNavigationActivity : ComponentActivity() {
                         ViewGroup.LayoutParams.MATCH_PARENT,
                     ),
                 )
-                placeholderView.text = "选择导航模式后开始"
                 syncNavigatorState()
                 scheduleNavigatorStatePolling()
                 updateControls()
@@ -574,9 +603,14 @@ class OfficialNavigationActivity : ComponentActivity() {
     }
 
     private fun startNavigation() {
+        if (!refreshConsent()) {
+            viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+            renderState()
+            return
+        }
         if (selectedNavigationMode == OfficialNavigationMode.REAL && !hasFineLocationPermission()) {
             pendingRealNavigationStart = true
-            detailView.text = "等待精确位置权限"
+            showDetail("等待精确位置权限", NaviTone.INFO)
             locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
             return
         }
@@ -585,11 +619,14 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     private fun startNavigationNow() {
         val session = navigator ?: return
+        if (!refreshConsent()) {
+            viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+            renderState()
+            return
+        }
         if (startRequestPending || navigationState in ACTIVE_STATES) return
-        routeSummaries = emptyList()
-        selectedRouteIndex = 0
-        placeholderView.visibility = View.VISIBLE
-        placeholderView.text = "路线规划中"
+        viewModel.prepareStart()
+        val startEpoch = sessionEpoch
         val result = session.start(
             OfficialNavigationRequest(
                 routeRequest = RouteRequest(
@@ -602,20 +639,36 @@ class OfficialNavigationActivity : ComponentActivity() {
                     simulationSpeedKilometersPerHour = simulationSpeed,
                 ),
             ),
-        ) { event -> runOnUiThread { handleNavigationEvent(event) } }
+        ) { event ->
+            runOnUiThread {
+                if (startEpoch != sessionEpoch ||
+                    navigator !== session ||
+                    isFinishing ||
+                    isDestroyed
+                ) {
+                    return@runOnUiThread
+                }
+                if (!refreshConsent()) {
+                    viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+                    renderState()
+                    return@runOnUiThread
+                }
+                handleNavigationEvent(event)
+            }
+        }
         when (result) {
             is MapResult.Success -> {
-                startRequestPending = true
-                navigationStarted = true
-                navigationState = session.state
-                detailView.text = getString(
-                    R.string.official_navigation_requesting,
-                    selectedTravelMode.displayName(),
+                viewModel.markStartSucceeded(session.state)
+                showDetail(
+                    getString(
+                        R.string.official_navigation_requesting,
+                        selectedTravelMode.displayName(),
+                    ),
+                    NaviTone.INFO,
                 )
-                updateControls()
             }
             is MapResult.Failure -> {
-                startRequestPending = false
+                viewModel.markStartFailed()
                 showMapError("导航启动失败", result.error)
             }
         }
@@ -626,10 +679,11 @@ class OfficialNavigationActivity : ComponentActivity() {
         val result = if (navigationState == OfficialNavigationState.PAUSED) session.resume() else session.pause()
         when (result) {
             is MapResult.Success -> {
-                startRequestPending = false
-                navigationState = session.state
-                detailView.text = if (navigationState == OfficialNavigationState.PAUSED) "导航已暂停" else "导航已继续"
-                updateControls()
+                viewModel.update { it.copy(startRequestPending = false, navigationState = session.state) }
+                showDetail(
+                    if (navigationState == OfficialNavigationState.PAUSED) "导航已暂停" else "导航已继续",
+                    NaviTone.INFO,
+                )
             }
             is MapResult.Failure -> showMapError("导航控制失败", result.error)
         }
@@ -639,8 +693,7 @@ class OfficialNavigationActivity : ComponentActivity() {
         val session = navigator ?: return
         when (val result = session.stop()) {
             is MapResult.Success -> {
-                startRequestPending = false
-                navigationState = session.state
+                viewModel.update { it.copy(startRequestPending = false, navigationState = session.state) }
                 finish()
             }
             is MapResult.Failure -> showMapError("停止导航失败", result.error)
@@ -652,9 +705,9 @@ class OfficialNavigationActivity : ComponentActivity() {
         val next = (selectedRouteIndex + 1) % routeSummaries.size
         when (val result = navigator?.selectRoute(next)) {
             is MapResult.Success -> {
-                selectedRouteIndex = next
+                viewModel.selectRoute(next)
                 showSelectedRoute()
-                updateControls()
+                renderState()
             }
             is MapResult.Failure -> showMapError("路线切换失败", result.error)
             null -> Unit
@@ -686,8 +739,7 @@ class OfficialNavigationActivity : ComponentActivity() {
         when (val result = navigator?.setVoiceGuidanceEnabled(enabled)) {
             is MapResult.Success -> {
                 voiceGuidanceEnabled = enabled
-                detailView.text = if (enabled) "语音引导已开启" else "语音引导已关闭"
-                updateControls()
+                showDetail(if (enabled) "语音引导已开启" else "语音引导已关闭", NaviTone.INFO)
             }
             is MapResult.Failure -> showMapError("语音设置失败", result.error)
             null -> Unit
@@ -703,8 +755,7 @@ class OfficialNavigationActivity : ComponentActivity() {
         when (val result = navigator?.setDayNightMode(next)) {
             is MapResult.Success -> {
                 dayNightMode = next
-                detailView.text = "导航配色：${next.displayName()}"
-                updateControls()
+                showDetail("导航配色：${next.displayName()}", NaviTone.INFO)
             }
             is MapResult.Failure -> showMapError("导航配色设置失败", result.error)
             null -> Unit
@@ -713,80 +764,89 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     private fun handleControlResult(successMessage: String, errorTitle: String, result: MapResult<Unit>) {
         when (result) {
-            is MapResult.Success -> detailView.text = successMessage
+            is MapResult.Success -> showDetail(successMessage, NaviTone.INFO)
             is MapResult.Failure -> showMapError(errorTitle, result.error)
         }
-        updateControls()
+        renderState()
     }
 
     private fun handleNavigationEvent(event: OfficialNavigationEvent) {
         when (event) {
-            is OfficialNavigationEvent.StateChanged -> {
-                navigationState = event.state
-                if (event.state != OfficialNavigationState.INITIALIZING) startRequestPending = false
-                placeholderView.visibility = when {
-                    event.state == OfficialNavigationState.INITIALIZING -> View.VISIBLE
-                    event.state in TERMINAL_STATES -> View.VISIBLE
-                    else -> View.GONE
-                }
-            }
+            is OfficialNavigationEvent.StateChanged -> viewModel.onStateChanged(event.state)
             is OfficialNavigationEvent.RoutesReady -> {
-                routeSummaries = event.routes
-                selectedRouteIndex = event.selectedRouteIndex
+                viewModel.onRoutesReady(event.routes, event.selectedRouteIndex)
                 showSelectedRoute()
             }
             is OfficialNavigationEvent.Progress -> showProgress(event.value)
-            is OfficialNavigationEvent.VoicePrompt -> detailView.text = event.text
+            is OfficialNavigationEvent.VoicePrompt -> showDetail(event.text, NaviTone.INFO)
             is OfficialNavigationEvent.LaneGuidance -> {
                 if (event.visible) {
-                    detailView.text = getString(R.string.official_navigation_lane_guidance, event.laneCount)
+                    showDetail(
+                        getString(R.string.official_navigation_lane_guidance, event.laneCount),
+                        NaviTone.INFO,
+                    )
                 }
             }
             is OfficialNavigationEvent.JunctionView -> {
-                if (event.visible) detailView.text = "前方路口放大图"
+                if (event.visible) showDetail("前方路口放大图", NaviTone.INFO)
             }
             is OfficialNavigationEvent.CameraAlerts -> event.cameras.firstOrNull()?.let { camera ->
-                detailView.text = getString(
-                    R.string.official_navigation_camera_alert,
-                    formatDistance(camera.distanceMeters),
+                showDetail(
+                    getString(
+                        R.string.official_navigation_camera_alert,
+                        formatDistance(camera.distanceMeters),
+                    ),
+                    NaviTone.INFO,
                 )
             }
             is OfficialNavigationEvent.IntervalCameraAlert -> {
                 val distance = event.camera.remainingDistanceMeters
                     ?: event.camera.endDistanceMeters
                     ?: event.camera.startDistanceMeters
-                detailView.text = if (distance != null) {
-                    "区间测速，剩余 ${formatDistance(distance)}"
-                } else {
-                    "进入区间测速路段"
-                }
+                showDetail(
+                    if (distance != null) {
+                        "区间测速，剩余 ${formatDistance(distance)}"
+                    } else {
+                        "进入区间测速路段"
+                    },
+                    NaviTone.INFO,
+                )
             }
             is OfficialNavigationEvent.ServiceAreas -> event.areas.firstOrNull()?.let { area ->
                 val name = area.name ?: "前方服务区"
-                detailView.text = "$name ${formatDistance(area.remainingDistanceMeters)}"
+                showDetail("$name ${formatDistance(area.remainingDistanceMeters)}", NaviTone.INFO)
             }
             is OfficialNavigationEvent.TrafficStatus -> {
                 if (event.segments.isNotEmpty()) {
-                    detailView.text = "路况已更新：${event.segments.size} 段"
+                    showDetail("路况已更新：${event.segments.size} 段", NaviTone.INFO)
                 }
             }
             is OfficialNavigationEvent.SpeedLimit -> {
-                detailView.text = event.limit?.let {
-                    getString(R.string.official_navigation_speed_limit, event.current, it)
-                } ?: getString(R.string.official_navigation_current_speed, event.current)
+                showDetail(
+                    event.limit?.let {
+                        getString(R.string.official_navigation_speed_limit, event.current, it)
+                    } ?: getString(R.string.official_navigation_current_speed, event.current),
+                    NaviTone.INFO,
+                )
             }
             is OfficialNavigationEvent.GpsStatus -> {
-                detailView.text = when {
-                    event.enabled == false -> "GPS 未开启"
-                    event.signalWeak -> "GPS 信号较弱"
-                    else -> "GPS 信号正常"
-                }
+                showDetail(
+                    when {
+                        event.enabled == false -> "GPS 未开启"
+                        event.signalWeak -> "GPS 信号较弱"
+                        else -> "GPS 信号正常"
+                    },
+                    NaviTone.INFO,
+                )
             }
             is OfficialNavigationEvent.WaypointArrived -> {
-                detailView.text = "已到达第 ${event.waypointIndex + 1} 个途经点"
+                showDetail("已到达第 ${event.waypointIndex + 1} 个途经点", NaviTone.INFO)
             }
             is OfficialNavigationEvent.WaypointProgress -> event.waypoints.firstOrNull()?.let { waypoint ->
-                detailView.text = "途经点 ${waypoint.waypointIndex + 1}，剩余 ${formatDistance(waypoint.remainingDistanceMeters)}"
+                showDetail(
+                    "途经点 ${waypoint.waypointIndex + 1}，剩余 ${formatDistance(waypoint.remainingDistanceMeters)}",
+                    NaviTone.INFO,
+                )
             }
             is OfficialNavigationEvent.HighwayGuidance -> {
                 val guidance = event.value
@@ -796,56 +856,68 @@ class OfficialNavigationActivity : ComponentActivity() {
                     guidance.exitName,
                     guidance.tollGateName,
                 )
-                detailView.text = if (guidance.visible && labels.isNotEmpty()) {
-                    labels.joinToString(" · ")
-                } else {
-                    "高速引导已更新"
-                }
+                showDetail(
+                    if (guidance.visible && labels.isNotEmpty()) {
+                        labels.joinToString(" · ")
+                    } else {
+                        "高速引导已更新"
+                    },
+                    NaviTone.INFO,
+                )
             }
             is OfficialNavigationEvent.RouteNotice -> {
-                detailView.text = event.value.message
-                    ?: event.value.subTitle
-                    ?: event.value.roadName
-                    ?: "路线提醒已更新"
+                showDetail(
+                    event.value.message
+                        ?: event.value.subTitle
+                        ?: event.value.roadName
+                        ?: "路线提醒已更新",
+                    NaviTone.INFO,
+                )
             }
-            OfficialNavigationEvent.Rerouting -> detailView.text = "偏航，正在重新规划路线"
+            OfficialNavigationEvent.Rerouting -> showDetail("偏航，正在重新规划路线", NaviTone.INFO)
             is OfficialNavigationEvent.RerouteCompleted -> {
-                detailView.text = if (event.success) {
-                    "路线重新规划完成"
-                } else {
-                    "路线重新规划失败：${event.error?.message ?: "未知错误"}"
-                }
+                showDetail(
+                    if (event.success) {
+                        "路线重新规划完成"
+                    } else {
+                        "路线重新规划失败：${event.error?.message ?: "未知错误"}"
+                    },
+                    NaviTone.INFO,
+                )
             }
             OfficialNavigationEvent.Arrived -> {
-                startRequestPending = false
-                navigationState = OfficialNavigationState.ARRIVED
-                detailView.text = "已到达目的地"
-                placeholderView.visibility = View.VISIBLE
-                placeholderView.text = "导航已完成"
+                viewModel.onArrived()
+                showDetail("已到达目的地", NaviTone.INFO)
             }
             is OfficialNavigationEvent.Error -> showMapError("官方导航错误", event.error)
         }
-        updateControls()
+        renderState()
     }
 
     private fun showSelectedRoute() {
         val route = routeSummaries.getOrNull(selectedRouteIndex) ?: return
-        detailView.text = getString(
-            R.string.official_navigation_route_summary,
-            selectedRouteIndex + 1,
-            routeSummaries.size,
-            formatDistance(route.distanceMeters),
-            formatDuration(route.durationSeconds),
+        showDetail(
+            getString(
+                R.string.official_navigation_route_summary,
+                selectedRouteIndex + 1,
+                routeSummaries.size,
+                formatDistance(route.distanceMeters),
+                formatDuration(route.durationSeconds),
+            ),
+            NaviTone.INFO,
         )
     }
 
     private fun showProgress(progress: OfficialNavigationProgress) {
         val road = progress.nextRoadName ?: progress.currentRoadName ?: "导航中"
-        detailView.text = getString(
-            R.string.official_navigation_progress,
-            road,
-            formatDistance(progress.remainingDistanceMeters),
-            formatDuration(progress.remainingDurationSeconds),
+        showDetail(
+            getString(
+                R.string.official_navigation_progress,
+                road,
+                formatDistance(progress.remainingDistanceMeters),
+                formatDuration(progress.remainingDurationSeconds),
+            ),
+            NaviTone.INFO,
         )
     }
 
@@ -853,31 +925,25 @@ class OfficialNavigationActivity : ComponentActivity() {
         startRequestPending = false
         navigationState = navigator?.state ?: OfficialNavigationState.FAILED
         showError("$title：${error.message}")
-        updateControls()
     }
 
     private fun showError(message: String) {
-        if (::detailView.isInitialized) {
-            detailView.text = message
-            detailView.setTextColor(DemoTheme.ERROR)
-            detailView.background = DemoTheme.roundedRect(
-                context = this,
-                fillColor = StatusTone.ERROR.cardBgColor,
-                strokeColor = StatusTone.ERROR.cardBorderColor,
-                cornerDp = 11f,
-            )
-        }
-        if (::placeholderView.isInitialized) {
-            placeholderView.visibility = View.VISIBLE
-            placeholderView.text = message
-            placeholderView.setTextColor(DemoTheme.ERROR)
-        }
+        viewModel.showErrorDetail(message)
+        renderState()
     }
 
-    private fun updateControls() {
+    private fun showDetail(text: String, tone: NaviTone) {
+        viewModel.setDetail(text, tone)
+        renderState()
+    }
+
+    private fun renderState() = render(viewModel.state.value)
+
+    /** 唯一渲染入口：所有文本、选中态和按钮可用性都由不可变 UI 状态推导。 */
+    private fun render(state: OfficialNavigationUiState) {
         if (!::startButton.isInitialized) return
-        stateView.text = navigationState.displayName()
-        val stateError = navigationState == OfficialNavigationState.FAILED
+        stateView.text = state.navigationState.displayName()
+        val stateError = state.navigationState == OfficialNavigationState.FAILED
         stateView.setTextColor(if (stateError) DemoTheme.ERROR else DemoTheme.BRAND_DARK)
         stateView.background = DemoTheme.roundedRect(
             context = this,
@@ -885,55 +951,90 @@ class OfficialNavigationActivity : ComponentActivity() {
             strokeColor = if (stateError) DemoTheme.ERROR_BORDER else DemoTheme.BRAND_BORDER,
             cornerDp = 999f,
         )
-        modeButtons.forEach { (mode, button) -> styleModeChoice(button, mode == selectedNavigationMode) }
-        travelModeButtons.forEach { (mode, button) -> styleChoice(button, mode == selectedTravelMode) }
+        modeButtons.forEach { (mode, button) ->
+            styleModeChoice(button, mode == state.navigationMode)
+        }
+        travelModeButtons.forEach { (mode, button) ->
+            styleChoice(button, mode == state.travelMode)
+        }
         val speedSupported = capabilities?.supports(OfficialNavigationFeature.SIMULATION_SPEED) == true
-        speedRow.visibility = if (speedSupported && selectedNavigationMode == OfficialNavigationMode.SIMULATED) {
+        speedRow.visibility = if (
+            speedSupported && state.navigationMode == OfficialNavigationMode.SIMULATED
+        ) {
             View.VISIBLE
         } else {
             View.GONE
         }
 
-        val busy = startRequestPending || navigationState in ACTIVE_STATES
-        setButtonEnabled(startButton, navigator != null && !busy && !navigationStarted)
+        setButtonEnabled(
+            startButton,
+            !state.controlsBlocked && navigator != null && !state.busy && !state.navigationStarted,
+        )
         setButtonEnabled(
             pauseResumeButton,
-            navigationState == OfficialNavigationState.NAVIGATING ||
-                navigationState == OfficialNavigationState.PAUSED,
+            !state.controlsBlocked &&
+                (state.navigationState == OfficialNavigationState.NAVIGATING ||
+                    state.navigationState == OfficialNavigationState.PAUSED),
         )
-        pauseResumeButton.text = if (navigationState == OfficialNavigationState.PAUSED) "继续" else "暂停"
-        setButtonEnabled(routeButton, routeSummaries.size > 1 && busy)
-        routeButton.text = if (routeSummaries.isEmpty()) {
+        pauseResumeButton.text = if (state.navigationState == OfficialNavigationState.PAUSED) {
+            "继续"
+        } else {
+            "暂停"
+        }
+        setButtonEnabled(
+            routeButton,
+            !state.controlsBlocked && state.routeSummaries.size > 1 && state.busy,
+        )
+        routeButton.text = if (state.routeSummaries.isEmpty()) {
             "路线"
         } else {
             getString(
                 R.string.official_navigation_route,
-                selectedRouteIndex + 1,
-                routeSummaries.size,
+                state.selectedRouteIndex + 1,
+                state.routeSummaries.size,
             )
         }
-        setButtonEnabled(stopButton, busy)
-        val navigationActive = navigationState == OfficialNavigationState.NAVIGATING ||
-            navigationState == OfficialNavigationState.PAUSED
+        setButtonEnabled(stopButton, !state.controlsBlocked && state.busy)
         listOfNotNull(rerouteButton, overviewButton, followButton).forEach {
-            setButtonEnabled(it, navigationActive)
+            setButtonEnabled(it, !state.controlsBlocked && state.navigationActive)
         }
         voiceButton?.let {
-            it.text = if (voiceGuidanceEnabled) "语音开" else "语音关"
-            styleChoice(it, voiceGuidanceEnabled)
-            setButtonEnabled(it, navigator != null)
+            it.text = if (state.voiceGuidanceEnabled) "语音开" else "语音关"
+            styleChoice(it, state.voiceGuidanceEnabled)
+            setButtonEnabled(it, !state.controlsBlocked && navigator != null)
         }
         dayNightButton?.let {
-            it.text = dayNightMode.shortDisplayName()
-            setButtonEnabled(it, navigator != null)
+            it.text = state.dayNightMode.shortDisplayName()
+            setButtonEnabled(it, !state.controlsBlocked && navigator != null)
         }
-        modeButtons.values.forEach { setButtonEnabled(it, !busy && !navigationStarted) }
-        travelModeButtons.values.forEach { setButtonEnabled(it, !busy && !navigationStarted) }
+        modeButtons.values.forEach {
+            setButtonEnabled(it, !state.controlsBlocked && !state.busy && !state.navigationStarted)
+        }
+        travelModeButtons.values.forEach {
+            setButtonEnabled(it, !state.controlsBlocked && !state.busy && !state.navigationStarted)
+        }
         val runtimeSpeed = capabilities?.supports(OfficialNavigationFeature.RUNTIME_SIMULATION_SPEED) == true &&
-            navigationActive && selectedNavigationMode == OfficialNavigationMode.SIMULATED
-        speedSeekBar.isEnabled = (!busy && !navigationStarted) || runtimeSpeed
+            state.navigationActive &&
+            state.navigationMode == OfficialNavigationMode.SIMULATED
+        speedSeekBar.isEnabled = !state.controlsBlocked &&
+            ((!state.busy && !state.navigationStarted) || runtimeSpeed)
         speedSeekBar.alpha = if (speedSeekBar.isEnabled) 1f else 0.42f
-        if (navigationState != OfficialNavigationState.FAILED) {
+        val expectedProgress = state.simulationSpeed - MIN_SIMULATION_SPEED
+        if (speedSeekBar.progress != expectedProgress) {
+            speedSeekBar.progress = expectedProgress
+        }
+        speedValueView.text = getString(R.string.official_navigation_speed, state.simulationSpeed)
+
+        detailView.text = state.detailText
+        if (state.detailTone == NaviTone.ERROR) {
+            detailView.setTextColor(DemoTheme.ERROR)
+            detailView.background = DemoTheme.roundedRect(
+                context = this,
+                fillColor = StatusTone.ERROR.cardBgColor,
+                strokeColor = StatusTone.ERROR.cardBorderColor,
+                cornerDp = 11f,
+            )
+        } else {
             detailView.setTextColor(DemoTheme.TEXT_PRIMARY)
             detailView.background = DemoTheme.roundedRect(
                 context = this,
@@ -941,15 +1042,20 @@ class OfficialNavigationActivity : ComponentActivity() {
                 strokeColor = StatusTone.INFO.cardBorderColor,
                 cornerDp = 11f,
             )
-            placeholderView.setTextColor(DemoTheme.TEXT_SECONDARY)
         }
+        placeholderView.visibility = if (state.placeholderVisible) View.VISIBLE else View.GONE
+        placeholderView.text = state.placeholderText
+        placeholderView.setTextColor(
+            if (state.placeholderTone == NaviTone.ERROR) DemoTheme.ERROR else DemoTheme.TEXT_SECONDARY,
+        )
     }
 
+    /** 兼容旧调用点；统一走 [render]。 */
+    private fun updateControls() = renderState()
+
     private fun disableNavigationControls() {
-        if (!::startButton.isInitialized) return
-        listOf(startButton, pauseResumeButton, routeButton, stopButton).forEach { setButtonEnabled(it, false) }
-        modeButtons.values.forEach { setButtonEnabled(it, false) }
-        travelModeButtons.values.forEach { setButtonEnabled(it, false) }
+        viewModel.blockControls()
+        renderState()
     }
 
     private fun orderedTravelModes(): List<TravelMode> = TRAVEL_MODE_ORDER.filter {
@@ -961,8 +1067,24 @@ class OfficialNavigationActivity : ComponentActivity() {
         finish()
     }
 
-    private fun hasPrivacyConsent(): Boolean = getSharedPreferences(PRIVACY_PREFERENCES, MODE_PRIVATE)
-        .getString(PRIVACY_DECISION_KEY, null) == PRIVACY_ACCEPTED
+    private fun refreshConsent(): Boolean {
+        val granted = consentStore.hasConsent()
+        if (!granted && consentGranted) revokeNavigationSession()
+        consentGranted = granted
+        return granted
+    }
+
+    /** 撤回同意后立即停止并销毁会话；旧事件桥通过 sessionEpoch 失效。 */
+    private fun revokeNavigationSession() {
+        statePollHandler.removeCallbacks(statePollRunnable)
+        sessionEpoch += 1
+        val session = navigator
+        navigator = null
+        val view = session?.view
+        if (view != null) (view.parent as? ViewGroup)?.removeView(view)
+        runCatching { session?.stop() }
+        runCatching { session?.destroy() }
+    }
 
     private fun hasFineLocationPermission(): Boolean = ContextCompat.checkSelfPermission(
         this,
@@ -971,6 +1093,11 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        if (!refreshConsent()) {
+            viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+            renderState()
+            return
+        }
         navigator?.onStart()
         syncNavigatorState()
         scheduleNavigatorStatePolling()
@@ -998,11 +1125,6 @@ class OfficialNavigationActivity : ComponentActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString(STATE_MODE, selectedNavigationMode.name)
-        outState.putString(STATE_TRAVEL_MODE, selectedTravelMode.name)
-        outState.putInt(STATE_SIMULATION_SPEED, simulationSpeed)
-        outState.putBoolean(STATE_VOICE_GUIDANCE, voiceGuidanceEnabled)
-        outState.putString(STATE_DAY_NIGHT_MODE, dayNightMode.name)
         val navigatorState = Bundle()
         navigator?.onSaveInstanceState(navigatorState)
         outState.putBundle(STATE_NAVIGATOR, navigatorState)
@@ -1020,11 +1142,11 @@ class OfficialNavigationActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        navigator?.onRequestPermissionsResult(requestCode, Array(permissions.size) { permissions[it] }, grantResults)
+        navigator?.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
@@ -1032,6 +1154,7 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     override fun onDestroy() {
         statePollHandler.removeCallbacks(statePollRunnable)
+        sessionEpoch += 1
         val session = navigator
         navigator = null
         runCatching { session?.destroy() }
@@ -1040,34 +1163,28 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     private fun scheduleNavigatorStatePolling() {
         statePollHandler.removeCallbacks(statePollRunnable)
-        if (navigator?.state == OfficialNavigationState.INITIALIZING) {
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+            consentGranted &&
+            navigator?.state == OfficialNavigationState.INITIALIZING
+        ) {
             statePollHandler.postDelayed(statePollRunnable, STATE_POLL_INTERVAL_MS)
         }
     }
 
     private fun syncNavigatorState() {
-        val session = navigator ?: return
-        val state = session.state
-        navigationState = state
-        placeholderView.visibility = when {
-            state == OfficialNavigationState.INITIALIZING -> View.VISIBLE
-            state in TERMINAL_STATES -> View.VISIBLE
-            else -> View.GONE
+        if (!refreshConsent()) {
+            viewModel.blockForConsent("地图隐私同意已失效，请返回首页重新确认")
+            renderState()
+            return
         }
-        if (state != OfficialNavigationState.INITIALIZING) {
-            startRequestPending = false
-            when (state) {
-                OfficialNavigationState.READY -> {
-                    placeholderView.text = "选择导航模式后开始"
-                    placeholderView.setTextColor(DemoTheme.TEXT_SECONDARY)
-                    detailView.setTextColor(DemoTheme.TEXT_PRIMARY)
-                }
-                OfficialNavigationState.FAILED -> showError(
-                    session.lastError?.let { "官方导航失败：${it.message}" }
-                        ?: "官方导航初始化失败，请返回后重试",
-                )
-                else -> Unit
-            }
+        val session = navigator ?: return
+        val engineState = session.state
+        viewModel.onStateChanged(engineState)
+        if (engineState == OfficialNavigationState.FAILED) {
+            showError(
+                session.lastError?.let { "官方导航失败：${it.message}" }
+                    ?: "官方导航初始化失败，请返回后重试",
+            )
         }
         updateControls()
     }
@@ -1244,16 +1361,7 @@ class OfficialNavigationActivity : ComponentActivity() {
         private const val EXTRA_PROVIDER = "mapfusion.official_navi.provider"
         private const val EXTRA_ORIGIN_PREFIX = "mapfusion.official_navi.origin"
         private const val EXTRA_DESTINATION_PREFIX = "mapfusion.official_navi.destination"
-        private const val STATE_MODE = "mapfusion.official_navi.mode"
-        private const val STATE_TRAVEL_MODE = "mapfusion.official_navi.travel_mode"
-        private const val STATE_SIMULATION_SPEED = "mapfusion.official_navi.simulation_speed"
-        private const val STATE_VOICE_GUIDANCE = "mapfusion.official_navi.voice_guidance"
-        private const val STATE_DAY_NIGHT_MODE = "mapfusion.official_navi.day_night_mode"
         private const val STATE_NAVIGATOR = "mapfusion.official_navi.navigator"
-        private const val PRIVACY_PREFERENCES = "mapfusion.demo.privacy"
-        private const val PRIVACY_DECISION_KEY = "privacy_decision"
-        private const val PRIVACY_ACCEPTED = "ACCEPTED"
-        private const val DEFAULT_SIMULATION_SPEED = 60
         private const val MIN_SIMULATION_SPEED = 20
         private const val MAX_SIMULATION_SPEED = 120
         private const val STATE_POLL_INTERVAL_MS = 150L
@@ -1274,12 +1382,6 @@ class OfficialNavigationActivity : ComponentActivity() {
             OfficialNavigationState.PLANNING,
             OfficialNavigationState.NAVIGATING,
             OfficialNavigationState.PAUSED,
-        )
-        private val TERMINAL_STATES = setOf(
-            OfficialNavigationState.ARRIVED,
-            OfficialNavigationState.STOPPED,
-            OfficialNavigationState.FAILED,
-            OfficialNavigationState.DESTROYED,
         )
         private val ADVANCED_CONTROL_FEATURES = setOf(
             OfficialNavigationFeature.MANUAL_REROUTE,
