@@ -40,6 +40,10 @@ git config --local core.hooksPath .githooks
 如果已经有其他 `core.hooksPath` 或自定义 pre-commit，先把本检查合入现有 hook，**不要直接覆盖**。
 `.gitattributes` 保证 hook 保持 LF 换行；hook 找不到可用 Python 时会阻止提交，不静默跳过。
 
+`commit-msg` 另行检查 `type(scope): 描述` 格式和提交正文中的凭据；例子为
+`feat(app): 完善状态管理`、`fix(app): 隔离迟到回调`，使用英文半角括号和冒号。
+详见 [提交约定](../CONTRIBUTING.md)。
+
 推荐每次提交前的顺序：
 
 1. 看 `git status --short`，不要把其他人的未完成改动一起暂存。
@@ -51,6 +55,6 @@ git config --local core.hooksPath .githooks
 ## 4. 边界
 
 - 这是本地防护，不是“绝对无敏感信息”的承诺；无法覆盖未知密钥格式、任意压缩包、全部二进制或远程历史。
-- 本次没有改写 Git 历史、没有推送或发布，也没有自动暂存用户原有改动。
+- 初次梳理未自动暂存用户原有改动；2026-11-09 按用户要求经敏感检查后保存本地基线。后续实现按范围本地提交，不推送、不发布、不改写历史。
 - 本地 hook 可被绕过；受保护分支、CI 强制检查和正式发布身份仍是 [生产交付计划](../MapSdk-Development-Plan.md) 的待办。
 - 项目构建、设备授权与厂商控制台问题分别验收，脱敏检查通过不代表导航鉴权或商用发布通过。

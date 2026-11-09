@@ -35,6 +35,7 @@ docs/*
 !docs/official-api-mappings.csv
 !docs/PROJECT_AUDIT.md
 !docs/REPOSITORY_HYGIENE.md
+!docs/DEMO_ARCHITECTURE.md
 
 # OS files
 .DS_Store

@@ -178,9 +178,10 @@ Navi 变体首页的“导航”分类会显示“官方 Navi”入口。导航�
 
 ## 项目梳理与提交卫生
 
-- 文档、模块职责、MVVM 现状和未闭环计划见 [项目梳理报告](docs/PROJECT_AUDIT.md)。本轮为梳理、必要清理和验证，不表示 MVVM 重构已完成。
+- 首次文档/代码核对见 [项目梳理报告](docs/PROJECT_AUDIT.md)。2026-11-09 开始完善两页 MVVM 状态基础、恢复和资源隔离，职责与未闭环项见 [Demo 架构](docs/DEMO_ARCHITECTURE.md)，不表示全部功能页拆分或生产验收完成。
 - 调试截图和布局 JSON 不属于 SDK 资源，`artifacts/` 已忽略；公共验证输出放在 `build/reports/`。
 - 凭据和签名指纹不得写进文档或代码。扫描和 hook 使用方式见 [提交卫生](docs/REPOSITORY_HYGIENE.md)。
+- 提交统一采用 `type(scope): 描述`，例如 `feat(app): 完善状态管理`；约定和本地门禁见 [贡献说明](CONTRIBUTING.md)。
 
 ```powershell
 python tools/check_sensitive.py             # 当前可提交文件

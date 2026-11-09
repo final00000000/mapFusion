@@ -90,29 +90,31 @@ GPS 状态、区间测速与剩余红绿灯详细事件只由当前高德组合�
 | 官方 Navi 可选模块 | 受限 | 单模块一步注册、隐私同步、地图会话和官方导航会话；百度 Map-AllNavi 8.1.0 与 base/bwnavi 8.1.0、carnavi 8.0.1 对齐，Search 8.2.0 排除 base 8.2 以保持 native ABI，Navi minSdk 23，并移除非核心高敏权限的自动合并 |
 | 官方 Navi Demo | 受限 | `amapNavi` / `baiduNavi` 独立变体通过统一 API 承载厂商 View；支持真实/模拟、能力驱动的出行方式、模拟速度、路线切换、暂停/继续/停止、主动重算、路线全览、恢复跟随、语音和昼夜控制，并展示途经点、高速引导、路线提醒、服务区及路况事件。高德待开始时隐藏空路线指引，导航/暂停时恢复官方布局；初始化轮询通过 `lastError` 展示错误。2026-11-06 真机复验：高德地图无遮挡、模拟速度行可动态显示，路线请求失败；百度启动即显示 status=230 / APP Mcode码校验失败。两家实际路线与导航中的布局切换仍未验收 |
 | Navi 原生库隔离 | 完成 | 两家 `libc++_shared.so` 不在同一 APK 中做不安全覆盖；`maps`、`amapNavi`、`baiduNavi` 三变体分别打包 |
-| 隐私同意/撤回 | 完成 | 默认不同意；撤回时先取消请求和销毁 Session，再通过 Factory SPI 同步 false |
-| 请求托管 | 完成 | `RequestScope` 支持同 key 替换、单 key/全部取消和关闭 |
+| 隐私同意/撤回 | 完成 | 默认不同意；两页共用 DemoConsentStore，保存失败不伪造成功；返回页面/启动导航时复查，撤回时先取消请求和销毁 Session，再同步厂商 false |
+| 请求托管 | 完成 | SDK RequestScope 管理句柄；DemoRequestRepository 补同键监听失效、会话代次和关闭后的迟到回调隔离 |
 | `MapConfig.extras` | 预留 | 当前两家适配器未消费稳定 key；1.0 前需决定类型化扩展契约或继续仅作保留字段 |
-| Demo MVVM / 页面拆分 | 未完成 | 当前仍由两个大型 Activity 管理视图、请求和状态；问题定位与分阶段验收见 [项目梳理报告](docs/PROJECT_AUDIT.md)，不把工具面板分类视为已完成 MVVM |
+| Demo MVVM 状态基础 | 已实现并验证 | 两页使用不可变 UiState、ViewModel、SavedStateHandle 与 STARTED 内 StateFlow 收集；共享隐私、请求隔离、设置恢复和覆盖物所有权见 [Demo 架构](docs/DEMO_ARCHITECTURE.md) |
+| Demo 页面/用例进一步拆分 | 未完成 | Activity 仍管理视图、权限和厂商资源宿主；功能 UI/用例继续拆分及性能基线未闭环，不把状态层基础计作所有页面拆分完成 |
 
 ## 工程化门槛
 
 | 项目 | 状态 | 交付要求或当前结果 |
 | --- | --- | --- |
-| JVM 单测 | 已通过 | 2026-11-06 本轮七模块 Debug 门禁通过，报告 144/144，0 failure/error/skipped；2026-11-05 Debug/Release 各 144/144 属历史记录，本轮未复跑 Release |
-| 真机 androidTest | 历史当前套件已通过，本轮仅编译 | 历史 OnePlus 9 Pro 基础套件 10/10，覆盖双厂商地图生命周期、WGS84 Marker、海量点、定位和步行路线；2026-11-06 本轮修复 UIAutomator/minSdk 冲突后 maps androidTest 编译通过，未执行 connected；官方 Navi 鉴权、前后台与长稳待验收 |
+| SDK JVM 单测 | 已通过 | 2026-11-09 七模块 Debug 门禁通过，报告合计 144 项，0 failure/error/skipped；Gradle 可复用 UP-TO-DATE，未复跑 Release 单测 |
+| Demo JVM 单测 | 已通过 | 2026-11-09 maps/amapNavi/baiduNavi Debug 各 38/38，覆盖两页状态、隐私、请求隔离、设置应用和句柄所有权；同一套用例不计作 114 项独立场景 |
+| 真机 androidTest | 本轮已通过 | 2026-11-09 maps connected 12/12：既有双厂商契约 10 项及 Activity 重建/隐私恢复 2 项；新增用例不初始化厂商并恢复原隐私决定。官方 Navi 真实路线、进程死亡及长稳待验收 |
 | 异步取消/超时/线程 | 完成 | `RequestHandle`、单请求取消、超时、默认主线程、自定义 Executor；导航/轨迹事件串行，见 `ASYNC_CONTRACT.md` |
-| Release/R8 构建 | 已通过（两家 Navi） | `app-amapNavi-release-unsigned.apk` 与 `app-baiduNavi-release-unsigned.apk` 均已生成，缺失类清单为空；Baidu 仍只有厂商 AAR 的 stack-map 警告，Amap Navi 无 Lint 问题 |
+| Release/R8 构建 | 三 Demo 已通过 | 2026-11-09 maps/amapNavi/baiduNavi 均执行 minify Release/R8 并生成 APK；只验收构建，未安装 minify APK 或验收真实导航、正式签名与发布消费 |
 | Release Maven 配置 | 部分完成 | 原五模块已通过独立消费验证；两个 Navi 模块已纳入统一发布配置但本阶段按要求未执行 Maven 发布/消费验证 |
 | POM 元数据门禁 | 已配置 | `mapFusionRequirePublicationMetadata=true` 会强制校验；真实 group/license/developer/SCM/签名身份待项目方提供 |
 | Consumer R8 | 已通过构建、运行受限 | 独立消费者不补应用规则仍完成 Release/R8；厂商命名空间仍保守 keep，需用 minify 真机结果和官方规则收紧 |
-| ABI 兼容检查 | 已通过 | 2026-11-06 本轮七个发布模块 apiCheck 全部成功；未执行 apiDump，未改 ABI 基线 |
-| Lint | 已通过但有警告 | 2026-11-06 删除未使用 result_message 后，maps/amapNavi/baiduNavi Debug 各 0 error / 9 warning：依赖提示 1、SetTextI18n 8；尚未清零警告 |
+| ABI 兼容检查 | 已通过 | 2026-11-09 七个发布模块 apiCheck 全部成功；本轮未执行 apiDump，未改公共 API 或 ABI 基线 |
+| Lint | 已通过但有警告 | 2026-11-09 maps/amapNavi/baiduNavi Debug 各 0 error / 8 warning；警告未全部清零 |
 | 版本库与 CI | 部分完成 | 已有 Git 版本历史；仍需受保护分支和自动校验工作流 |
 | Maven Central 发布 | 未完成 | 脚本支持元数据与签名，但真实身份信息、签名密钥、Central 账户和发布验证均未闭环 |
-| 提交前敏感检查 | 本地已启用 | 工作区与整个暂存区扫描通过；20 项工具回归通过，包含真实临时仓库 hook 拦截；不自动暂存/提交，不替代 CI 和历史安全审计 |
+| 提交格式与敏感检查 | 本地已启用 | scoped 半角 type(scope): 描述；pre-commit 扫整个 index，commit-msg 检查格式和正文敏感内容；27 项工具测试通过，包含真实临时仓库双 hook 拦截，不替代 CI 和历史安全审计 |
 
-本轮梳理、清理范围、复验结果和未执行项见 [项目梳理报告](docs/PROJECT_AUDIT.md)。Release/R8、发布消费与真机记录仍为对应历史结果，本轮未复验。
+2026-11-09 后续实施与复验见 [项目梳理报告第 9 节](docs/PROJECT_AUDIT.md#9-2026-11-09-后续实施与验收)。旧清理/设备/发布记录保留为对应历史结果；本轮未做 Maven 发布或独立消费者复验。
 
 ## 当前结论
 

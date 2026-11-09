@@ -2,6 +2,8 @@
 
 源码/构建核对日期：2026-11-06；文档收尾与最终扫描：2026-11-09。范围：当前磁盘文档、源码、测试配置及工作区；不是历史提交的完整安全审计。
 
+> 历史说明：第 1–8 节是改造前的审计与清理快照，其中“尚无 ViewModel”“未修改 Kotlin”“未提交”等仅描述当时任务。2026-11-09 后续实施已保存本地基线，并完善 Demo 状态层；最新改动与实际验证见第 9 节及 [Demo 架构](DEMO_ARCHITECTURE.md)。
+
 ## 1. 结论
 
 - 项目已经具备双厂商 SDK 抽象、真实适配器、统一异步/会话契约、双地图 Demo 和独立官方导航变体，不是单纯地图展示壳。
@@ -108,7 +110,7 @@ Debug 报告分布：map-api 54，map-factory 47，map-baidu 18，map-amap 22，
 
 验证命令已按三个 flavor 修正到生产交付计划。日志和清理备份位于会话临时目录，不属于发布材料。
 
-## 8. 下一轮最小实施顺序（尚未执行）
+## 8. 审计时建议的最小实施顺序（历史）
 
 1. **先锁定 Demo 行为并修正小缺口**：epoch 捕获、设置恢复、覆盖物与导航/轨迹互斥规则；为这些行为补可重复测试，不开始全量 API 扩张。
 2. **先做 Main 页 MVVM**：不可变 DemoUiState、MainViewModel、SavedStateHandle、Repository/服务用例；ViewModel 不持有 Activity/地图 View/Activity 绑定 Session。页面只负责渲染、权限及地图宿主生命周期。
@@ -117,3 +119,46 @@ Debug 报告分布：map-api 54，map-factory 47，map-baidu 18，map-amap 22，
 5. **最后按既有 P0-P8账本推进高级能力**：每批分别验收统一入口、厂商实现、Demo、错误/所有权、ABI、设备结果；需要后台导航或额外产品时单独确认授权和合规。
 
 MVVM 验收应包含：两页可观察的单一 UiState；纯状态/用例测试；切厂商旧回调隔离；旋转与进程重建的可恢复选择状态；不同功能互斥/覆盖物所有权明确；三变体编译、Lint、ABI和相关设备用例通过。只减少 Activity 行数或新增 ViewModel 文件不能视为完成。
+
+## 9. 2026-11-09 后续实施与验收
+
+用户授权先将现有代码保存到本地 Git，再完善与修复。已建立本地基线 `a866f58 feat(sdk): 保存双厂商地图与导航集成基线`；后续改动按 scoped 半角 `type(scope): 描述` 分开提交，不推送、发布或重写历史。
+app 改造已提交到本地 `328db0b feat(app): 完善MVVM状态管理与会话隔离`（18 个文件）；不含厂商 Key、构建产物或临时日志。
+
+### 已实施
+
+- 首页与官方导航页建立真实 ViewModel、不可变 UiState、只读 StateFlow 和 SavedStateHandle；只持久化选择/设置，不把旧 NAVIGATING、路线或定位恢复成活跃引擎。原生 View/Session 仍由 Activity 管理。
+- 两页共用 DemoConsentStore，保留旧偏好约定；同步保存失败不伪造成功，返回页面或启动导航复查实际同意状态，撤回使事件桥失效并停止/销毁会话。
+- 首页八类单次请求归入 DemoRequestRepository；同键替换先使旧监听失效再取消，切厂商/关闭后的迟到回调被隔离。轻量导航启动前捕获代次，UI 投递同时校验会话身份、销毁与隐私。
+- 同厂商重建保留完整地图设置；切厂商重建默认值；对话框用不可变草稿，取消不污染已应用状态；初始化、恢复和用户应用复用同一路径。
+- Demo 只登记自己创建的常规、海量点、瓦片、热力图和路线句柄，普通查询/替换覆盖物不再隐式停止导航或销毁轨迹；轨迹/导航互斥及全局清空改为显式动作。移除失败不阻断其他句柄或 Session 释放。
+- 官方导航状态由 ViewModel 归约；模式/速度/路线索引按能力和边界规范化。保留现有 150 ms 初始化轮询，但限定 STARTED，onStop/onDestroy 取消；事件桥复核会话身份、代次和隐私。
+- 新增 commit-msg 格式/敏感内容门禁及贡献约定；不绕过既有 pre-commit，不复制本地 Key、签名身份或真实位置到提交材料。
+
+### 实际验证
+
+| 检查 | 2026-11-09 结果 | 边界 |
+| --- | --- | --- |
+| Demo Debug JVM | maps/amapNavi/baiduNavi 各 38/38，0 failure/error/skipped | 同一套 38 项独立用例在三个变体验证，不当作 114 项独立场景 |
+| Demo Debug 编译与 Lint | 三变体通过；各 0 error / 8 warning | 未清零现有 Lint 警告 |
+| maps androidTest | 编译及 connected 通过，12/12，0 failure/error/skipped | 既有双厂商 10 项 + 新 Activity 重建/隐私 2 项；新用例禁用厂商初始化并恢复原隐私决定，不等同进程死亡恢复 |
+| Demo Release/R8 | maps/amapNavi/baiduNavi 全部通过 | 三个 minify...WithR8 任务成功；未安装 minify APK、正式签名或做真实导航/发布消费 |
+| SDK Debug JVM | 七模块门禁通过，报告合计 144 项 | 可复用 UP-TO-DATE；未复跑 SDK Release 单测 |
+| SDK ABI | 七模块 apiCheck 全部通过 | 未改 SDK 公共接口或 ABI；未执行 apiDump |
+| 仓库工具 | 27/27，通过 | 包含真实临时 Git 仓库 pre-commit/commit-msg 拦截格式及敏感正文 |
+| 提交前文件门禁 | 工作区 216 文件敏感扫描、18 文档/工具文件、25 本地链接、双 hook LF 与 diff --check 通过 | app 提交前整个 index 210 文件扫描通过；每次提交继续运行真实 index/提交信息门禁，不替代完整历史安全审计 |
+
+本轮实际执行命令：
+
+```powershell
+.\gradlew.bat :app:testMapsDebugUnitTest :app:testAmapNaviDebugUnitTest :app:testBaiduNaviDebugUnitTest :app:compileMapsDebugAndroidTestKotlin :app:lintMapsDebug :app:lintAmapNaviDebug :app:lintBaiduNaviDebug --no-daemon --console=plain --max-workers=2
+.\gradlew.bat :app:connectedMapsDebugAndroidTest --no-daemon --console=plain --max-workers=2
+.\gradlew.bat :app:assembleMapsRelease :app:assembleAmapNaviRelease :app:assembleBaiduNaviRelease --no-daemon --console=plain --max-workers=2
+python -m unittest discover -s tools/tests -v
+```
+
+构建中实际修复了权限回调签名、独立覆盖物句柄类型、测试 Rule 可见性和导航速度恢复类型问题；重跑上述 Demo 回归后通过。日志保存在会话临时目录，不发布完整鉴权/设备日志。
+
+### 仍未闭环
+
+本轮完成的是状态基础与已定位行为修复，不是全部页面拆分。功能 UI/用例进一步拆分、真实进程死亡恢复、官方 Navi 真实路线/正式授权/锁屏/弱网/来电/长稳、性能/泄漏/体积基线、minify 真机、七模块发布消费与远程 CI 仍需后续验收。厂商 SDK 组合与业务 minSdk 21 未改变。

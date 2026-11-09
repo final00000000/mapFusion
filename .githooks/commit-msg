@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+for executable in python python3 py; do
+    if command -v "$executable" >/dev/null 2>&1 && \
+       "$executable" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+        exec "$executable" tools/check_commit_message.py "$1"
+    fi
+done
+echo 'Commit blocked: Python 3.10+ is required for commit message checks.' >&2
+exit 1

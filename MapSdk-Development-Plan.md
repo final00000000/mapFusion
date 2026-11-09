@@ -23,8 +23,8 @@ app ──> map-fusion-full ─┼──> map-baidu ────> map-api
 
 能力范围与限制只以 `CAPABILITY_MATRIX.md` 为准。
 
-2026-11-06 文档、代码和工作区核对、2026-11-09 收尾结果见 [项目梳理报告](docs/PROJECT_AUDIT.md)。
-下文既有测试数字属于对应日期的历史记录，本次复验结果单独记录，不表示所有阶段已闭环。
+2026-11-06 审计与 2026-11-09 清理/后续实施结果见 [项目梳理报告](docs/PROJECT_AUDIT.md)，
+状态层与资源所有权见 [Demo 架构](docs/DEMO_ARCHITECTURE.md)。下文既有数字按实际日期区分，不表示所有阶段已闭环。
 
 2026-11-06 起按 [官方 API 覆盖计划](docs/OFFICIAL_API_COVERAGE_PLAN.md) 扩大封装范围，
 以实际锁定版本的逐签名账本追踪缺口。P0 修正 Demo 身份；P1 补齐室内楼层与六种原生检索工厂；
@@ -52,8 +52,8 @@ Provider 切换、双厂商聚合包以及支持真实定位/路线模拟两种�
 
 历史记录：2026-08-13 JVM 报告为 142/142；当时参数化 androidTest 已在 OnePlus 9 Pro
 完成 10/10，覆盖双厂商地图生命周期、Marker、原生海量点、真实定位和步行路线。
-2026-11-06 本轮七模块 Debug 门禁通过，当前报告 144/144；三 Demo 编译/Lint、maps
-androidTest 编译和七模块 apiCheck 通过，本轮未复验 connected、Release/R8 或发布消费。
+历史记录：2026-11-06 七模块 Debug 报告 144/144，三 Demo 编译/Lint、maps androidTest 编译和七模块 apiCheck 通过；当轮未复验 connected、Release/R8 或发布消费。
+2026-11-09 后续实施：两页 MVVM 状态基础与问题修复落地，三 Demo Debug 单测各 38/38、Lint 各 0 error / 8 warning；maps connected 12/12、三 Demo Release/R8 构建、七模块 Debug 门禁及 apiCheck 通过。只验收上述检查，未复跑 SDK Release 单测、minify 真机或发布消费。
 Release Maven、POM 元数据校验、可选 PGP 签名、Consumer R8 入口和 BCV 已配置，七模块
 ABI 基线已由 `apiDump/apiCheck` 建立。原五库与 Demo Release 已通过，两个 Navi Release AAR
 也已单独通过；Amap Navi 与 Baidu Navi Demo 的 minify Release/R8 均已通过并生成 unsigned APK，本地原五模块
@@ -182,7 +182,8 @@ zIndex 不进入统一契约，不以无效字段伪造支持。
 
 - [x] Demo 首页改为分类工具面板，并按当前分类动态收缩操作行和结果条，保留更多地图主视图空间。
 - [x] 地图 UI/手势扩展支持运行时能力查询与明确失败：新增 `supportedUiFeatures()` / `applyUiOptions()`，覆盖两家共有控制项及厂商特有手势。
-- [ ] Demo 按地图、覆盖物、搜索、路线导航和轨迹拆分页面，以 ViewModel/不可变 UiState 管理页面状态，以 Repository/用例承接服务请求；地图 View、权限和隐私 UI 留在宿主，不把 Activity/View 放进 ViewModel。
+- [x] 两页建立 ViewModel/不可变 UiState、SavedStateHandle 和生命周期内 StateFlow 渲染；共享隐私存储、单次请求仓库、完整设置恢复与 Demo 覆盖物所有权已测试。地图 View、权限和 Activity 绑定 Session 仍由宿主管理。
+- [ ] 地图、覆盖物、搜索、路线导航和轨迹的功能 UI/用例继续拆分；真实进程死亡恢复、长期状态/资源稳定性仍需验证，不把 MVVM 状态基础计作全页面重构完成。
 - [x] README 提供 `map-fusion-full` 与单厂商最小组合接入说明。
 - [ ] Demo/正式应用采用 App Bundle 或 ABI Split，记录两家 SDK 与 Navi 模块体积预算。
 - [ ] 建立 Marker/MultiPoint/Polyline/Tile/HeatMap 压测、内存泄漏和长时间前后台稳定性基线。
