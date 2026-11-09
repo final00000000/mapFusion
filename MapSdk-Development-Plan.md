@@ -53,7 +53,8 @@ Provider 切换、双厂商聚合包以及支持真实定位/路线模拟两种�
 历史记录：2026-08-13 JVM 报告为 142/142；当时参数化 androidTest 已在 OnePlus 9 Pro
 完成 10/10，覆盖双厂商地图生命周期、Marker、原生海量点、真实定位和步行路线。
 历史记录：2026-11-06 七模块 Debug 报告 144/144，三 Demo 编译/Lint、maps androidTest 编译和七模块 apiCheck 通过；当轮未复验 connected、Release/R8 或发布消费。
-2026-11-09 后续实施：两页 MVVM 状态基础与问题修复落地，三 Demo Debug 单测各 38/38、Lint 各 0 error / 8 warning；maps connected 12/12、三 Demo Release/R8 构建、七模块 Debug 门禁及 apiCheck 通过。只验收上述检查，未复跑 SDK Release 单测、minify 真机或发布消费。
+2026-11-09 状态基础阶段的历史验证：两页 MVVM 状态基础与问题修复落地，三 Demo Debug 单测各 38/38、Lint 各 0 error / 8 warning；maps connected 12/12、三 Demo Release/R8 构建、七模块 Debug 门禁及 apiCheck 通过。后续页面职责拆分与新回归以项目梳理报告第 10 节为准；未复跑 SDK Release 单测、minify 真机或发布消费。
+2026-11-09 页面职责拆分阶段：MainActivity 2428→170 行、官方导航 Activity 1433→251 行（含中文 KDoc），视图、弹窗、功能、命令和 SDK 宿主独立。三变体 JVM 各 81/81、Lint 各 0 error / 8 warning；maps connected 首轮百度定位超时后未改断言完整复跑 15/15；三个 Release/R8 实际执行并通过，七模块 Debug/ABI 门禁通过，工具 36/36。厂商字节码 R8 警告、minify 真机、真实导航/授权与长期稳定性仍未闭环。
 Release Maven、POM 元数据校验、可选 PGP 签名、Consumer R8 入口和 BCV 已配置，七模块
 ABI 基线已由 `apiDump/apiCheck` 建立。原五库与 Demo Release 已通过，两个 Navi Release AAR
 也已单独通过；Amap Navi 与 Baidu Navi Demo 的 minify Release/R8 均已通过并生成 unsigned APK，本地原五模块
@@ -183,7 +184,8 @@ zIndex 不进入统一契约，不以无效字段伪造支持。
 - [x] Demo 首页改为分类工具面板，并按当前分类动态收缩操作行和结果条，保留更多地图主视图空间。
 - [x] 地图 UI/手势扩展支持运行时能力查询与明确失败：新增 `supportedUiFeatures()` / `applyUiOptions()`，覆盖两家共有控制项及厂商特有手势。
 - [x] 两页建立 ViewModel/不可变 UiState、SavedStateHandle 和生命周期内 StateFlow 渲染；共享隐私存储、单次请求仓库、完整设置恢复与 Demo 覆盖物所有权已测试。地图 View、权限和 Activity 绑定 Session 仍由宿主管理。
-- [ ] 地图、覆盖物、搜索、路线导航和轨迹的功能 UI/用例继续拆分；真实进程死亡恢复、长期状态/资源稳定性仍需验证，不把 MVVM 状态基础计作全页面重构完成。
+- [x] 首页与官方导航页的布局、弹窗、功能编排、纯策略与页面级 SDK 宿主已独立封装；Activity 只负责 Android 连接，Demo 生产类和方法补中文 KDoc，结构与状态/策略测试已补齐。
+- [ ] 真实进程死亡恢复、长期状态/资源稳定性、性能与发布验收仍需验证，不把页面职责拆分计作全部生产交付完成。
 - [x] README 提供 `map-fusion-full` 与单厂商最小组合接入说明。
 - [ ] Demo/正式应用采用 App Bundle 或 ABI Split，记录两家 SDK 与 Navi 模块体积预算。
 - [ ] 建立 Marker/MultiPoint/Polyline/Tile/HeatMap 压测、内存泄漏和长时间前后台稳定性基线。

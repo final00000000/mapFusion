@@ -1,61 +1,92 @@
-# Demo 状态管理与资源所有权
+# Demo MVVM、页面职责与资源所有权
 
-本轮实施日期：2026-11-09。本文描述 Demo 的 MVVM 状态基础与已定位问题的修复边界，不把它写成所有交付阶段完成。
+实施日期：2026-11-09。本轮在已提交的状态基础上进一步拆分首页和官方导航页；不是只新增 ViewModel，也不是把 Activity 搬进巨型工具类。范围为 `app` Demo 生产代码，不重构 SDK 公共接口。
 
-## 职责
+## 分层与调用方向
 
 ```text
-Activity（视图、权限、厂商 View/Session 生命周期）
-  ├─ ViewModel → 不可变 UiState → StateFlow → 生命周期内渲染
-  │    └─ SavedStateHandle（可恢复的选择/设置，不保存原生对象）
-  ├─ DemoRequestRepository（单次请求、同键替换、会话代次、关闭）
-  ├─ DemoConsentStore（唯一偏好约定、同步落盘、跨页面读取）
-  └─ DemoOverlayController → DemoOverlayStore（只拥有 Demo 自己的句柄）
+MainActivity（Android 装配、权限连接、跳转、原生恢复与生命周期）
+  ├─ MainViewModel → MainUiState → STARTED 内 StateFlow 收集
+  ├─ MainScreen → MainToolPanel / MainWidgets（渲染、发出值类型意图）
+  ├─ MainActionCatalog → MainActionDispatcher（入口目录、穷举路由）
+  ├─ MainMapDialogs / MainRouteDialog → 局部草稿 → 确认后提交
+  ├─ MainFeatures（独立功能的组合根，不实现全部功能）
+  │    ├─ MainSearchFeature / MainOverlayFeature
+  │    └─ MainLocationFeature / MainTrackFeature / MainRouteFeature
+  ├─ MainPrivacyController / MainLocationPermissionCoordinator
+  └─ MainMapHost → DemoRequestRepository / MapFusionSession
 
-SDK 仍保留 map-api → factory / 厂商 adapter 的契约边界。
+OfficialNavigationActivity（Intent、权限续接、Android 生命周期与返回）
+  ├─ OfficialNavigationViewModel → OfficialNavigationUiState
+  ├─ OfficialNavigationPage / Controls / Renderer / Widgets / Views
+  ├─ OfficialNavigationAction → OfficialNavigationCommands
+  ├─ OfficialNavigationControlPolicy / OfficialNavigationText（纯策略、格式器）
+  └─ OfficialNavigationSessionHost → NavigationSessionFence → OfficialNavigator
+
+共享：DemoConsentStore、DemoMapSettingsApplier、DemoOverlayController / Store。
+SDK 仍是 map-api → factory / 厂商 adapter，不套用页面 MVVM。
 ```
 
-- `presentation/main`：首页选择、权限请求状态、完整地图设置、可观察结果状态。
-- `presentation/navigation`：官方导航选择和运行态，选项规范化与状态恢复。
-- `data`：共享隐私存储、页面请求仓库；不复制厂商 Key，不持有地图 View。
-- `map`：地图设置应用路径与 Demo 覆盖物所有权；不修改 SDK 公共 API。
-- Activity 仍负责地图 View、Activity 绑定的官方导航会话、权限回调和业务工具入口；本轮没有把这些资源塞进 ViewModel。
+## 文件定位与边界
 
-## 恢复规则
+| 职责 | 实现 | 不应承担的职责 |
+| --- | --- | --- |
+| 首页 Android 连接点 | [MainActivity](../app/src/main/kotlin/com/mapfusion/demo/MainActivity.kt) | 不构造功能弹窗、不实现查询/绘制/导航、不格式化结果 |
+| 首页业务状态 | [MainViewModel](../app/src/main/kotlin/com/mapfusion/demo/presentation/main/MainViewModel.kt)、[MainUiState](../app/src/main/kotlin/com/mapfusion/demo/presentation/main/MainUiState.kt) | 不保存 Activity、Context、View、MapProvider、Session 或 navigator |
+| 首页视图 | [MainScreen](../app/src/main/kotlin/com/mapfusion/demo/main/MainScreen.kt)、[MainToolPanel](../app/src/main/kotlin/com/mapfusion/demo/main/MainToolPanel.kt) | 只渲染快照和发送意图，不直接调用 SDK，不持有可变业务状态副本 |
+| 首页入口 | [MainActionCatalog](../app/src/main/kotlin/com/mapfusion/demo/main/MainActionCatalog.kt)、[MainActionDispatcher](../app/src/main/kotlin/com/mapfusion/demo/main/MainActionDispatcher.kt) | 目录只有值类型描述，26 个动作按五类组织；不把点击闭包保存进状态 |
+| 首页功能 | [MainFeatures](../app/src/main/kotlin/com/mapfusion/demo/main/MainFeatures.kt) 及同目录独立 Feature | 功能控制器不负责 Activity 生命周期、页面布局或权限申请 |
+| 设置草稿与窗口 | [MainMapSettingsDraft](../app/src/main/kotlin/com/mapfusion/demo/main/MainMapSettingsDraft.kt)、[MainDialogOwner](../app/src/main/kotlin/com/mapfusion/demo/main/MainDialogOwner.kt) | 草稿不持有 ViewModel；窗口由页面拥有，退出时统一关闭 |
+| 首页 SDK 宿主 | [MainMapHost](../app/src/main/kotlin/com/mapfusion/demo/main/MainMapHost.kt) | 只拥有页面级原生资源与请求边界，不构造工具 UI，不成为全局缓存 |
+| 官方导航 Android 连接点 | [OfficialNavigationActivity](../app/src/main/kotlin/com/mapfusion/demo/OfficialNavigationActivity.kt) | 不构造整页控件、不实现事件文案或导航状态归约 |
+| 官方导航业务状态 | [OfficialNavigationViewModel](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationViewModel.kt) | 接收统一事件和值快照，不持有引擎引用；运行态不持久化 |
+| 官方导航视图与纯策略 | [OfficialNavigationPage](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationPage.kt)、[ControlPolicy](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationControlPolicy.kt)、[Text](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationText.kt) | 视图不保存业务状态；控件与命令共享可用性规则；20 类事件文案与业务归约分开 |
+| 官方导航原生资源 | [SessionHost](../app/src/main/kotlin/com/mapfusion/demo/navigation/OfficialNavigationSessionHost.kt)、[Commands](../app/src/main/kotlin/com/mapfusion/demo/navigation/OfficialNavigationCommands.kt)、[Fence](../app/src/main/kotlin/com/mapfusion/demo/navigation/NavigationSessionFence.kt) | 生命周期、身份栅栏和操作结果分别处理，不向状态层传 Activity/原生会话 |
 
-1. 首页保存厂商选择、出行/导航方式、工具分类、全部地图开关及权限请求选择。
-2. 设置使用不可变副本；对话框修改草稿，不直接修改活跃 UiState；取消不污染已应用设置。
-3. 同一厂商重建保留设置，不再在每次 `switchProvider` 中无条件重置；真实切厂商按厂商能力重新建立默认设置。
-4. 初始化、重建和用户应用设置复用一个应用路径，保存 SDK 接受的类型、语言和 UI 选项。
-5. 原生地图/导航 Bundle 仍由宿主转发；SavedStateHandle 只保存可恢复的业务选择。
-6. 新 Activity 对应新 SDK 会话，不将旧 NAVIGATING、路线列表或定位对象当成已经恢复的活跃引擎。隐私状态始终以持久存储重新校验。
+两个 Activity 的职责都已实质拆开：MainActivity 从 2428 行降至 170 行，OfficialNavigationActivity 从 1433 行降至 251 行，均包含中文注释；48 个生产文件最长为 285 行。实际验证记录见 [本轮审计第 10 节](PROJECT_AUDIT.md#10-2026-11-09-页面职责拆分与中文注释)。每文件 400 行限额只是防回退辅助，不是 MVVM 正确性的证明。
 
-## 异步与生命周期
+## 恢复与状态规则
 
-- 轻量导航启动时捕获当前会话代次；回调转入 UI 线程后再次验证代次、会话身份、宿主是否销毁以及隐私同意。
-- 单次服务请求由 DemoRequestRepository 管理；替换同键请求先使旧监听失效再取消，避免旧 CANCELLED 覆盖新结果。
-- 切厂商或撤回隐私会使旧代次失效并取消请求；页面销毁永久关闭仓库，拒绝继续发起新请求。
-- 官方导航事件绑定当前会话身份；初始化状态轮询仍保留为当前 SDK 契约的补偿，但仅在 STARTED 状态内运行，停止/销毁时移除。
-- 两页统一使用 DemoConsentStore；保存失败不假装同意/撤回成功，恢复或重新开始时复核实际持久状态。
+1. 首页保存厂商、出行/导航方式、工具分类、全部地图开关及位置权限待办；使用明确的分类、路线、设置、权限与运行阶段归约操作。
+2. 地图设置和路线弹窗只修改局部草稿，取消不改变已应用快照。能力外的地图类型/语言不能通过草稿绕过厂商支持集合。
+3. 同一厂商重建保留设置；真实切厂商重置厂商相关设置并丢弃旧定位、导航和原生恢复 Bundle。
+4. 初始化、恢复和用户应用设置共用 DemoMapSettingsApplier。其应用不是事务：中途失败不能宣称全部生效，不伪造回滚。
+5. 原生地图/导航 Bundle、Intent extra、返回键、配置和 `Array<String>` 权限回调协议保持不变。
+6. 新 Activity 对应新 SDK 会话：地图阶段、能力数量、定位、NAVIGATING、路线列表和官方导航等待标记必须重新产生；不把旧运行状态当成已恢复引擎。
+7. 官方导航由 ViewModel 归约事件、路线下标、开始等待、终态与配色；渲染与命令层共用纯 ControlPolicy，避免两套可用性判断。
 
-## 覆盖物规则
+## 异步、隐私与生命周期
 
-- SDK Session 中的 LocationDisplay、EmbeddedNavigator、TrackRecorder 使用原始控制器拥有自己的资源。
-- Demo 查询、路线展示和覆盖物示例经 DemoOverlayController 登记返回句柄，替换示例只清 DemoOverlayStore。
-- POI、行政区或普通覆盖物展示不再静默停止导航、销毁轨迹；相机移动仍可能改变视野，导航是否持续跟随由组件契约决定。
-- 开始轨迹时显式停止轻量导航并释放旧轨迹；开始轻量导航时显式停止定位展示、释放轨迹，避免争抢定位展示。
-- “清空地图”是明确的全局动作：停止导航/轨迹/定位展示后清全部覆盖物，结果说明包含这些副作用。
-- 单个 Demo 句柄移除失败时继续尝试其他移除；销毁/切厂商不能因此跳过 Session 释放。
+- 单次服务请求由 DemoRequestRepository 托管。同键替换先使旧监听失效再取消；切厂商/关闭后的迟到回调不能覆盖新结果。
+- UI 投递重新校验代次、页面是否关闭/退出和持久隐私决定。轻导航与轨迹额外校验具体 session/recorder 身份，旧组件终止事件不能修改新组件状态。
+- 释放资源先使请求/会话令牌失效并清空引用，再停止、销毁和分离 View；单个覆盖物或组件清理失败不跳过其他资源释放。
+- 页面级宿主可以持有 Activity 和原生 View，但不可全局缓存，Activity 必须显式关闭。ViewModel 始终只持有值与可恢复选择。
+- 两页共用 DemoConsentStore。同步保存失败不伪造同意/撤回成功；回前台、开始操作与导航事件前复核真实存储。Key 只在同意门禁内读取，仍由被忽略的 local.properties 注入。
+- 官方导航保留 150 ms 初始化补偿轮询：仅 STARTED 且当前会话仍 INITIALIZING 时运行，onStop/onDestroy 移除；新令牌和身份不匹配时拒绝旧事件。
+- 权限状态由 ViewModel 管理，系统注册与结果续接由 Activity/协调器拥有。首页允许精确或大致定位，官方真实导航仍要求精确权限；取消/撤回后不能续接旧动作。
 
-## 测试与未闭环项
+## 覆盖物与功能互斥
 
-新增 JVM 用例覆盖设置编码、选择恢复、厂商归一化、隐私保存失败、同键请求替换、迟到回调、关闭、覆盖物所有权及地图设置应用。
-新增设备用例在不初始化厂商的情况下检查 Activity 重建与隐私状态，测试结束恢复原同意决定。
-导航状态用例检查选择恢复、能力规范化、速度/路线索引与新会话运行态重置。
+- SDK Session 的 LocationDisplay、EmbeddedNavigator、TrackRecorder 用原始控制器拥有自己的资源。
+- Demo 查询、路线展示和覆盖物示例经 DemoOverlayController 登记句柄；普通替换只清 DemoOverlayStore，不隐式停止轨迹或导航。
+- 海量点、瓦片、热力图、路线分别登记，不强转成 MapOverlay。
+- 开始轨迹时显式停止轻导航、定位展示并释放旧 recorder；开始轻导航时显式停止定位展示、释放轨迹。
+- “清空地图”是全局动作：停止导航/轨迹/定位后清全部覆盖物，结果说明明确这些副作用。
+- Demo 图片只在创建请求时编码，用完回收 Bitmap，不落盘或全局缓存原生图像。
 
-2026-11-09 实际验证：三 Demo Debug 各 38/38 JVM 用例、Lint 各 0 error / 8 warning；maps connected 12/12（既有 10 项、新增 2 项）；三 Demo Release/R8 构建及七模块 apiCheck 通过。Release 仅验收构建，未安装 minify APK 或测试真实道路导航。
+## 中文注释与回归
 
-实际执行结果以 [能力矩阵](../CAPABILITY_MATRIX.md) 和本轮总结为准，源码里存在测试不代表已经通过。
+所有 Demo 生产类、接口、枚举、对象、显式构造方法，以及普通、扩展、override、局部方法均补充中文 KDoc。主构造参数的用途由类说明覆盖；说明重点是状态/资源所有权、参数语义、恢复、取消、失败和副作用，而不是“执行某方法”模板。
 
-仍需继续：功能 UI/用例进一步拆分、官方导航服务及真实道路/弱网/锁屏/来电/长稳、真机进程死亡恢复、性能与泄漏基线、Release 发布消费和 CI 强制门禁。
-本轮不会把高级 API P0-P8、Stage A-G 的全部未完成项勾选，也不会机械更新 ABI 基线。
+```powershell
+python tools/check_demo_structure.py
+python -m unittest discover -s tools/tests -p 'test_*.py' -v
+```
+
+[结构检查器](../tools/check_demo_structure.py) 只扫描 main/maps/amapNavi/baiduNavi/debug，屏蔽注释和字符串后检查声明 KDoc与每文件 400 行限额。它不是完整 Kotlin AST，不能替代人工注释质量核对、编译或行为测试；SDK 和测试代码不在该生产注释门禁范围。
+
+本轮新增 JVM 场景覆盖入口全集/能力过滤、草稿取消/非法选择、坐标类型、明确状态归约、权限一次性消费、官方导航控件策略、事件格式化/归约与会话栅栏。新增设备场景验证真实首页分类点击、状态渲染、重建和隐私门禁，但禁用厂商初始化并在结束恢复原隐私决定。
+
+上一轮状态基础的 38/38 JVM、12/12 connected 结果保留在 [审计第 9 节](PROJECT_AUDIT.md#9-2026-11-09-后续实施与验收)，不代替本轮拆分验证。最新结果以第 10 节和 [能力矩阵](../CAPABILITY_MATRIX.md) 为准。
+
+仍未闭环：官方导航真实道路、正式授权、前台服务、弱网/锁屏/来电/长稳、真实进程死亡恢复、性能/泄漏/体积基线、minify APK 真机、发布消费和远程 CI。本轮不勾完 Stage A-G 或高级 API P0-P8，也不机械更新 ABI 基线。

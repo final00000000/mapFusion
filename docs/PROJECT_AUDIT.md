@@ -2,7 +2,7 @@
 
 源码/构建核对日期：2026-11-06；文档收尾与最终扫描：2026-11-09。范围：当前磁盘文档、源码、测试配置及工作区；不是历史提交的完整安全审计。
 
-> 历史说明：第 1–8 节是改造前的审计与清理快照，其中“尚无 ViewModel”“未修改 Kotlin”“未提交”等仅描述当时任务。2026-11-09 后续实施已保存本地基线，并完善 Demo 状态层；最新改动与实际验证见第 9 节及 [Demo 架构](DEMO_ARCHITECTURE.md)。
+> 历史说明：第 1–8 节是改造前的审计与清理快照，其中“尚无 ViewModel”“未修改 Kotlin”“未提交”等仅描述当时任务。第 9 节记录 2026-11-09 的状态基础阶段；后续实质页面拆分、中文注释与最新验证见第 10 节及 [Demo 架构](DEMO_ARCHITECTURE.md)。
 
 ## 1. 结论
 
@@ -162,3 +162,71 @@ python -m unittest discover -s tools/tests -v
 ### 仍未闭环
 
 本轮完成的是状态基础与已定位行为修复，不是全部页面拆分。功能 UI/用例进一步拆分、真实进程死亡恢复、官方 Navi 真实路线/正式授权/锁屏/弱网/来电/长稳、性能/泄漏/体积基线、minify 真机、七模块发布消费与远程 CI 仍需后续验收。厂商 SDK 组合与业务 minSdk 21 未改变。
+
+## 10. 2026-11-09 页面职责拆分与中文注释
+
+本轮以干净的本地 `be3e0f6` 为起点，回应“Activity 仍有两千多行”的问题。上一轮主要完成状态基础，未彻底拆开 UI 与功能；本轮按真实职责重构 Demo，不修改 SDK 公共 API、ABI、厂商依赖组合或 minSdk，不切换 Compose，不推送远端。
+
+### 实质拆分
+
+| 页面/职责 | 原规模 | 当前规模与责任 |
+| --- | --- | --- |
+| MainActivity | 2428 行 | 170 行（含中文注释）；只装配页面对象、收集状态、连接权限/官方跳转、原生恢复与生命周期 |
+| OfficialNavigationActivity | 1433 行 | 251 行（含中文注释）；只解析 Intent、连接页面/命令/宿主、处理权限续接、返回与原生生命周期 |
+| 独立生产代码 | Activity 内混合实现 | 48 个 Demo 生产文件，最长 285 行；没有迁移到另一个巨型 helper |
+
+- 首页布局由 MainScreen、MainToolPanel、MainWidgets 管理；五类功能目录用 26 个值类型 MainAction 描述，MainActionDispatcher 穷举路由，视图不保存 SDK 点击闭包。
+- 设置、室内、诊断和路线窗口独立封装，MainDialogOwner 管窗口；MainMapSettingsDraft 是纯局部草稿，取消不写回已应用状态，选择按当前能力规范化。
+- 查询、覆盖物、定位、轨迹和轻导航分别由独立 Feature 实现，MainFeatures 只是组合根；地图会话和请求统一归 MainMapHost，工厂注册和 Key 读取仍在同意门禁内。
+- 官方导航页面拆出 Page/Controls/Renderer/Widgets/Views，纯 ControlPolicy 供控件与命令共同使用；Text 处理全部 20 类事件文案，业务选择、路线、等待和终态由 ViewModel 归约。
+- Commands 转换用户意图为 SDK 操作，SessionHost 管原生生命周期与初始化轮询，NavigationSessionFence 管引用身份/代次；ViewModel 不持有 Activity、Context、View、provider、navigator 或 Session。
+- 原有 Intent extra、地图/导航原生 Bundle、返回键、配置、权限 `Array<String>` 和 150 ms STARTED-only 初始化补偿协议保留。新会话运行态重置，可恢复选择仍沿用旧 SavedStateHandle 键。
+
+### 中文注释与具体边界修复
+
+- 注释范围是 app 的 main/maps/amapNavi/baiduNavi/debug 生产代码，不是全仓 SDK 重构。类、接口、枚举、对象、显式构造方法和普通/扩展/override/局部方法补中文 KDoc；主构造参数由类说明覆盖。
+- 48 文件、460 处声明的轻量 KDoc 检查通过；每文件 400 行限额用于防回退，检查器不是 Kotlin AST，不能证明注释质量、MVVM 或运行行为。
+- 轨迹回调同时验证代次与 recorder 身份；释放先清空句柄再 destroy。切会话/撤回/退出先使令牌失效，迟到或同步尾事件不能污染新运行态。
+- 权限回调在隐私失效时只取消待办，不伪造系统拒绝；设置提示被返回键/外部点击取消时清掉续接。保存失败仍不伪造同意或撤回成功。
+- 不支持的路线方式继续返回统一 UNSUPPORTED 错误；撤回后的占位说明改为“当前未启用会话”，不再错误声称从未初始化。
+- 事件文案迁入纯格式器后，删除确认无源码引用的 7 个旧字符串资源；速度初始控件复用既有格式资源，不增加重构产生的 Lint 警告。
+- 新增 43 个 JVM 场景：首页 18 个、导航 25 个；覆盖目录全集/能力过滤、草稿、坐标、明确归约、权限一次性消费、控件策略、事件和会话栅栏。新增 3 个设备场景验证真实首页连接，但禁用厂商初始化、结束恢复原隐私决定。
+
+完整职责树与源码定位见 [Demo 架构](DEMO_ARCHITECTURE.md)。
+
+### 本轮实际验证
+
+| 检查 | 2026-11-09 最终结果 | 明确边界 |
+| --- | --- | --- |
+| Demo Debug JVM | 三变体各 81/81，0 failure/error/skipped | 43 个新场景加原 38 个；同一套场景不计作 243 项独立用例 |
+| Demo 编译与 Lint | maps/amapNavi/baiduNavi Debug 及 maps androidTest 编译通过；Lint 各 0 error / 8 warning | 保留 GradleDependency 5、NewerVersionAvailable 1、UseKtx 1、SetTextI18n 1，不扩大范围升级依赖 |
+| maps connected | 完整复跑 15/15，0 failure/error/skipped | 双厂商契约 10 项、原恢复 2 项、新首页交互 3 项；新增 Demo 用例禁用厂商初始化并恢复原隐私决定 |
+| SDK Debug JVM | 七模块门禁通过，报告合计 144，0 failure/error/skipped | api 54、factory 47、baidu 18、amap 22、full 1、两个 navi 各 1；可复用 UP-TO-DATE，未复跑 SDK Release 单测 |
+| SDK ABI | 七模块 apiCheck 通过 | SDK 源码相对 a866f58 未变；公共 API/ABI、厂商组合、业务 minSdk 21 与 Navi minSdk 23 保持不变；没有 apiDump |
+| Demo Release/R8 | 三变体全部成功，三个 minify...WithR8 实际执行 | 仍有厂商字节码 stack map 警告；未安装 minify APK，不代表正式签名、真实导航或发布消费通过 |
+| 中文 KDoc/结构辅助 | 48 文件、460 处声明通过，每文件不超过 400 行 | 最长为导航 ViewModel 的 285 行；词法检查不等于完整 AST 或行为证明 |
+| 仓库工具 | 36/36 通过 | 新结构检查器 9 项，原工具 27 项；包含真实临时 Git 仓库双 hook 拦截 |
+| 文件门禁 | 工作区 260 文件敏感扫描、20 文档/工具文件及 48 本地文件链接、双 hook LF、diff --check 通过 | 每次本地提交另检查整个 index；不发布完整鉴权、位置或设备日志 |
+
+首轮 connected 为 14/15：既有百度单次定位返回 TIMEOUT，25,000ms 内未完成；位置开关已开启。未改生产代码、断言、超时、权限逻辑或 Key，完整复跑后 15/15。首轮日志与 XML 快照留在会话临时目录。这仅记录一次失败及复验，不推断网络原因，不证明长期稳定性。
+
+首轮 Gradle 任务选择误写为 map-full，尚未进入编译就退出；核对工程后使用真实 map-fusion-full。后续完整 Debug、ABI、设备及 Release/R8 都重新执行，不引用上一轮 38/12 作为本轮结论。
+
+本轮执行的核心命令（Gradle 串行，统一 --no-daemon --console=plain --max-workers=2）：
+
+```powershell
+.\gradlew.bat :app:testMapsDebugUnitTest :app:testAmapNaviDebugUnitTest :app:testBaiduNaviDebugUnitTest :app:compileMapsDebugAndroidTestKotlin :app:lintMapsDebug :app:lintAmapNaviDebug :app:lintBaiduNaviDebug
+.\gradlew.bat :app:connectedMapsDebugAndroidTest
+.\gradlew.bat :app:assembleMapsRelease :app:assembleAmapNaviRelease :app:assembleBaiduNaviRelease
+python tools/check_demo_structure.py
+python tools/check_sensitive.py
+python -m unittest discover -s tools/tests -p 'test_*.py' -q
+```
+
+### 未纳入本轮验收
+
+真实道路官方导航、正式授权、前台服务、弱网/锁屏/来电/长稳、真实进程死亡恢复、性能/泄漏/体积基线、minify 真机、发布消费与远程 CI 仍未闭环。这里完成的是页面职责拆分、中文注释及上述回归，不把全部 Stage A-G 或生产稳定性勾选完成。
+
+### 本地提交与收尾
+
+页面拆分、中文注释和相关测试已保存为本地 `179b94a refactor(app): 按功能拆分地图页面并完善中文注释`（59 个 app/src 文件）。提交前整个 index 的 258 文件敏感扫描通过，双 hook 为 100755、LF；核对提交父节点为 be3e0f6、UTF-8 信息正确、已提交源码与验证源码一致。文档与新结构检查器另按 scoped 格式提交，不推送、发布、重写历史或绕过 hook。

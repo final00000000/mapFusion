@@ -94,17 +94,18 @@ GPS 状态、区间测速与剩余红绿灯详细事件只由当前高德组合�
 | 请求托管 | 完成 | SDK RequestScope 管理句柄；DemoRequestRepository 补同键监听失效、会话代次和关闭后的迟到回调隔离 |
 | `MapConfig.extras` | 预留 | 当前两家适配器未消费稳定 key；1.0 前需决定类型化扩展契约或继续仅作保留字段 |
 | Demo MVVM 状态基础 | 已实现并验证 | 两页使用不可变 UiState、ViewModel、SavedStateHandle 与 STARTED 内 StateFlow 收集；共享隐私、请求隔离、设置恢复和覆盖物所有权见 [Demo 架构](docs/DEMO_ARCHITECTURE.md) |
-| Demo 页面/用例进一步拆分 | 未完成 | Activity 仍管理视图、权限和厂商资源宿主；功能 UI/用例继续拆分及性能基线未闭环，不把状态层基础计作所有页面拆分完成 |
+| Demo 页面职责拆分 | 已实现 | 首页/官方导航 Activity 为 170/251 行（含注释）；布局、弹窗、入口路由、独立 Feature、命令与 SDK 资源宿主分离。48 个生产文件、460 处声明的中文 KDoc 静态检查通过，不以行数代替行为验收 |
+| Demo 生产稳定性 | 待验收 | 真实进程死亡、性能/泄漏、长期状态与资源稳定性仍未闭环；页面拆分不等于真实导航或全部 Stage F 完成 |
 
 ## 工程化门槛
 
 | 项目 | 状态 | 交付要求或当前结果 |
 | --- | --- | --- |
 | SDK JVM 单测 | 已通过 | 2026-11-09 七模块 Debug 门禁通过，报告合计 144 项，0 failure/error/skipped；Gradle 可复用 UP-TO-DATE，未复跑 Release 单测 |
-| Demo JVM 单测 | 已通过 | 2026-11-09 maps/amapNavi/baiduNavi Debug 各 38/38，覆盖两页状态、隐私、请求隔离、设置应用和句柄所有权；同一套用例不计作 114 项独立场景 |
-| 真机 androidTest | 本轮已通过 | 2026-11-09 maps connected 12/12：既有双厂商契约 10 项及 Activity 重建/隐私恢复 2 项；新增用例不初始化厂商并恢复原隐私决定。官方 Navi 真实路线、进程死亡及长稳待验收 |
+| Demo JVM 单测 | 已通过 | 2026-11-09 页面拆分后 maps/amapNavi/baiduNavi Debug 各 81/81，0 failure/error/skipped；含新增首页 18 项、导航 25 项；同一套 81 场景不计作 243 项独立场景 |
+| 真机 androidTest | 本轮复验通过 | 2026-11-09 maps connected 最终 15/15：双厂商契约 10 项、重建/隐私 2 项、新首页交互 3 项。首轮百度定位 25,000ms TIMEOUT；未改代码/断言完整复跑通过，不当作长稳证明。新 Demo 用例禁用厂商初始化并恢复原决定；官方 Navi 真实路线与进程死亡待验收 |
 | 异步取消/超时/线程 | 完成 | `RequestHandle`、单请求取消、超时、默认主线程、自定义 Executor；导航/轨迹事件串行，见 `ASYNC_CONTRACT.md` |
-| Release/R8 构建 | 三 Demo 已通过 | 2026-11-09 maps/amapNavi/baiduNavi 均执行 minify Release/R8 并生成 APK；只验收构建，未安装 minify APK 或验收真实导航、正式签名与发布消费 |
+| Release/R8 构建 | 三 Demo 已复验通过 | 2026-11-09 页面拆分后 maps/amapNavi/baiduNavi 均实际执行 minify Release/R8 并生成 APK；保留厂商字节码 stack map 警告。只验收构建，未安装 minify APK 或验收真实导航、正式签名与发布消费 |
 | Release Maven 配置 | 部分完成 | 原五模块已通过独立消费验证；两个 Navi 模块已纳入统一发布配置但本阶段按要求未执行 Maven 发布/消费验证 |
 | POM 元数据门禁 | 已配置 | `mapFusionRequirePublicationMetadata=true` 会强制校验；真实 group/license/developer/SCM/签名身份待项目方提供 |
 | Consumer R8 | 已通过构建、运行受限 | 独立消费者不补应用规则仍完成 Release/R8；厂商命名空间仍保守 keep，需用 minify 真机结果和官方规则收紧 |
@@ -112,9 +113,9 @@ GPS 状态、区间测速与剩余红绿灯详细事件只由当前高德组合�
 | Lint | 已通过但有警告 | 2026-11-09 maps/amapNavi/baiduNavi Debug 各 0 error / 8 warning；警告未全部清零 |
 | 版本库与 CI | 部分完成 | 已有 Git 版本历史；仍需受保护分支和自动校验工作流 |
 | Maven Central 发布 | 未完成 | 脚本支持元数据与签名，但真实身份信息、签名密钥、Central 账户和发布验证均未闭环 |
-| 提交格式与敏感检查 | 本地已启用 | scoped 半角 type(scope): 描述；pre-commit 扫整个 index，commit-msg 检查格式和正文敏感内容；27 项工具测试通过，包含真实临时仓库双 hook 拦截，不替代 CI 和历史安全审计 |
+| 提交格式与敏感检查 | 本地已启用 | scoped 半角 type(scope): 描述；pre-commit 扫整个 index，commit-msg 检查格式和正文敏感内容；36 项工具测试通过（含结构检查器 9 项和真实临时仓库双 hook 拦截），不替代 CI 和历史安全审计 |
 
-2026-11-09 后续实施与复验见 [项目梳理报告第 9 节](docs/PROJECT_AUDIT.md#9-2026-11-09-后续实施与验收)。旧清理/设备/发布记录保留为对应历史结果；本轮未做 Maven 发布或独立消费者复验。
+2026-11-09 页面拆分与最新复验见 [项目梳理报告第 10 节](docs/PROJECT_AUDIT.md#10-2026-11-09-页面职责拆分与中文注释)。第 9 节状态基础及旧清理/设备/发布记录保留为历史结果；本轮未做 Maven 发布或独立消费者复验。
 
 ## 当前结论
 

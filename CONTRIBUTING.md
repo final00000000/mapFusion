@@ -21,13 +21,14 @@ chore(repo): 增加提交检查
 ```powershell
 git config --local core.hooksPath .githooks
 python tools/check_sensitive.py
+python tools/check_demo_structure.py
 python -m unittest discover -s tools/tests -p 'test_*.py' -v
 ```
 
 - pre-commit 检查真实暂存区；commit-msg 检查格式和提交信息的敏感内容。
 - 使用现有自定义 hooks 时先合并，不直接覆盖；不使用 --no-verify 绕过。
 - 先保存本地基线，再将实现、测试与文档按范围提交；没有明确要求不推送远端。
-- 新增 Demo 状态层仅依赖发布 SDK 的公开接口；ViewModel 不持有 Activity、原生 View 或 Activity 绑定会话。
+- Demo 页面遵循状态归 ViewModel、控件归视图、资源归页面宿主；布局/弹窗/功能实现不能留在 Activity 或迁入巨型 helper。生产类和方法写中文 KDoc，并运行结构检查；主构造参数由类说明覆盖。ViewModel 不持有 Activity、Context、原生 View 或 Activity 绑定会话。
 - 先验证三个 Demo 变体、相关单测/Lint和 apiCheck，公共 API 基线不得机械重建。
 - 真机、Release/R8、发布消费与授权分别记录，不用编译成功代替设备验收。
 
