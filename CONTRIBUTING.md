@@ -28,7 +28,8 @@ python -m unittest discover -s tools/tests -p 'test_*.py' -v
 - pre-commit 检查真实暂存区；commit-msg 检查格式和提交信息的敏感内容。
 - 使用现有自定义 hooks 时先合并，不直接覆盖；不使用 --no-verify 绕过。
 - 先保存本地基线，再将实现、测试与文档按范围提交；没有明确要求不推送远端。
-- Demo 页面遵循状态归 ViewModel、控件归视图、资源归页面宿主；布局/弹窗/功能实现不能留在 Activity 或迁入巨型 helper。生产类和方法写中文 KDoc，并运行结构检查；主构造参数由类说明覆盖。ViewModel 不持有 Activity、Context、原生 View 或 Activity 绑定会话。
+- Demo 页面遵循状态归 ViewModel、控件归视图、资源归页面宿主；布局/弹窗/功能实现不能留在 Activity 或迁入巨型 helper。ViewModel 不持有 Activity、Context、原生 View 或 Activity 绑定会话。
+- Demo 生产类/方法、每个手写属性与每个枚举项均写独立中文 KDoc。主构造 val/var 也是字段，不能仅靠类概述；说明用途、适用单位/默认值、空值含义、资源所有权和恢复/清理条件。普通主构造参数用类说明或 @param；函数局部变量不算类字段。运行结构检查和相关编译，不把轻量词法检查当完整 AST 证明。
 - 先验证三个 Demo 变体、相关单测/Lint和 apiCheck，公共 API 基线不得机械重建。
 - 真机、Release/R8、发布消费与授权分别记录，不用编译成功代替设备验收。
 

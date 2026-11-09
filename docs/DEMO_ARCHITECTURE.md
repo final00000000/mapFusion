@@ -43,7 +43,7 @@ SDK 仍是 map-api → factory / 厂商 adapter，不套用页面 MVVM。
 | 官方导航视图与纯策略 | [OfficialNavigationPage](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationPage.kt)、[ControlPolicy](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationControlPolicy.kt)、[Text](../app/src/main/kotlin/com/mapfusion/demo/presentation/navigation/OfficialNavigationText.kt) | 视图不保存业务状态；控件与命令共享可用性规则；20 类事件文案与业务归约分开 |
 | 官方导航原生资源 | [SessionHost](../app/src/main/kotlin/com/mapfusion/demo/navigation/OfficialNavigationSessionHost.kt)、[Commands](../app/src/main/kotlin/com/mapfusion/demo/navigation/OfficialNavigationCommands.kt)、[Fence](../app/src/main/kotlin/com/mapfusion/demo/navigation/NavigationSessionFence.kt) | 生命周期、身份栅栏和操作结果分别处理，不向状态层传 Activity/原生会话 |
 
-两个 Activity 的职责都已实质拆开：MainActivity 从 2428 行降至 170 行，OfficialNavigationActivity 从 1433 行降至 251 行，均包含中文注释；48 个生产文件最长为 285 行。实际验证记录见 [本轮审计第 10 节](PROJECT_AUDIT.md#10-2026-11-09-页面职责拆分与中文注释)。每文件 400 行限额只是防回退辅助，不是 MVVM 正确性的证明。
+职责拆分阶段的 MainActivity 为 170 行、OfficialNavigationActivity 为 251 行，见 [审计第 10 节](PROJECT_AUDIT.md#10-2026-11-09-页面职责拆分与中文注释)。字段/枚举注释补齐后当前为 183/264 行（均含中文注释），48 个生产文件最长为 307 行；未增加业务逻辑。每文件 400 行限额只是防回退辅助，不是 MVVM 正确性的证明。
 
 ## 恢复与状态规则
 
@@ -76,17 +76,25 @@ SDK 仍是 map-api → factory / 厂商 adapter，不套用页面 MVVM。
 
 ## 中文注释与回归
 
-所有 Demo 生产类、接口、枚举、对象、显式构造方法，以及普通、扩展、override、局部方法均补充中文 KDoc。主构造参数的用途由类说明覆盖；说明重点是状态/资源所有权、参数语义、恢复、取消、失败和副作用，而不是“执行某方法”模板。
+Demo 生产类/接口/枚举/对象、显式构造与普通/扩展/override/局部方法均有中文 KDoc；主构造 val/var、类成员/顶层属性、对象常量及每个枚举项现在也逐条补齐独立说明。普通主构造参数由类说明或 @param 覆盖，函数局部变量不当作字段。说明用途、适用单位/默认值、空值、所有权、恢复和清理条件，而不是只翻译字段名。
 
 ```powershell
 python tools/check_demo_structure.py
 python -m unittest discover -s tools/tests -p 'test_*.py' -v
 ```
 
-[结构检查器](../tools/check_demo_structure.py) 只扫描 main/maps/amapNavi/baiduNavi/debug，屏蔽注释和字符串后检查声明 KDoc与每文件 400 行限额。它不是完整 Kotlin AST，不能替代人工注释质量核对、编译或行为测试；SDK 和测试代码不在该生产注释门禁范围。
+[结构检查器](../tools/check_demo_structure.py) 和 [词法辅助](../tools/kotlin_source.py) 只扫描 main/maps/amapNavi/baiduNavi/debug，分别检查类/方法、属性、枚举项的独立中文 KDoc及每文件 400 行限额。模板字符串作为完整字面量屏蔽，不分析其中表达式；它们不是完整 Kotlin AST，不能替代人工质量核对、编译或行为测试。支持保留完整字面量的 token 比对，用于确认纯注释改动没有改名、改类型、改初值或枚举顺序；SDK 和测试源码不在生产注释门禁范围。
 
 本轮新增 JVM 场景覆盖入口全集/能力过滤、草稿取消/非法选择、坐标类型、明确状态归约、权限一次性消费、官方导航控件策略、事件格式化/归约与会话栅栏。新增设备场景验证真实首页分类点击、状态渲染、重建和隐私门禁，但禁用厂商初始化并在结束恢复原隐私决定。
 
-上一轮状态基础的 38/38 JVM、12/12 connected 结果保留在 [审计第 9 节](PROJECT_AUDIT.md#9-2026-11-09-后续实施与验收)，不代替本轮拆分验证。最新结果以第 10 节和 [能力矩阵](../CAPABILITY_MATRIX.md) 为准。
+状态基础的 38/38 JVM、12/12 connected 保留在第 9 节；页面拆分的 81/81、15/15 和 Release/R8 保留在第 10 节，均不作为本次字段注释补齐的新增设备验收。字段注释阶段的最新检查以第 11 节和 [能力矩阵](../CAPABILITY_MATRIX.md) 为准。
 
 仍未闭环：官方导航真实道路、正式授权、前台服务、弱网/锁屏/来电/长稳、真实进程死亡恢复、性能/泄漏/体积基线、minify APK 真机、发布消费和远程 CI。本轮不勾完 Stage A-G 或高级 API P0-P8，也不机械更新 ABI 基线。
+
+### 字段说明示例与覆盖
+
+- MainUiState 的 lastLocation 说明当前会话、null 与不持久化；preferredProvider 是用户选择，不等于 SDK 已创建；mapPhase/capabilityCount 仅当前运行态。
+- OfficialNavigationUiState 的 simulationSpeed 说明 km/h、默认 60 和 20–120 限幅；navigationStarted 不等于 navigationActive；语音/配色选择与 SDK 实际设置分开。
+- ControlPolicy 的 speedVisible 只决定是否展示，speedEnabled 才是操作门禁，不能凭显示推断授权或会话有效。
+- NavigationSessionToken 的 identity 是宿主内引用身份，epoch 是计数而非时间戳，两者都不能放到 VM/恢复存储。
+- 48 文件中 318 个属性、60 个枚举项以及原有 460 处类/方法声明的中文 KDoc 检查通过；新工具边界用例覆盖字段漏注释、枚举参数/注解/项体、局部变量、完整模板字面量与 token 变更检测。

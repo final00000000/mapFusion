@@ -55,6 +55,7 @@ Provider 切换、双厂商聚合包以及支持真实定位/路线模拟两种�
 历史记录：2026-11-06 七模块 Debug 报告 144/144，三 Demo 编译/Lint、maps androidTest 编译和七模块 apiCheck 通过；当轮未复验 connected、Release/R8 或发布消费。
 2026-11-09 状态基础阶段的历史验证：两页 MVVM 状态基础与问题修复落地，三 Demo Debug 单测各 38/38、Lint 各 0 error / 8 warning；maps connected 12/12、三 Demo Release/R8 构建、七模块 Debug 门禁及 apiCheck 通过。后续页面职责拆分与新回归以项目梳理报告第 10 节为准；未复跑 SDK Release 单测、minify 真机或发布消费。
 2026-11-09 页面职责拆分阶段：MainActivity 2428→170 行、官方导航 Activity 1433→251 行（含中文 KDoc），视图、弹窗、功能、命令和 SDK 宿主独立。三变体 JVM 各 81/81、Lint 各 0 error / 8 warning；maps connected 首轮百度定位超时后未改断言完整复跑 15/15；三个 Release/R8 实际执行并通过，七模块 Debug/ABI 门禁通过，工具 36/36。厂商字节码 R8 警告、minify 真机、真实导航/授权与长期稳定性仍未闭环。
+2026-11-09 字段/枚举注释阶段：仅补中文 KDoc/排版，48 文件的 318 属性、60 枚举项、原有 460 类/方法检查通过；完整字面量 token 比对无差异。三变体重新编译/单测各 81/81、Lint 各 0 error / 8 warning、七模块 apiCheck 通过，工具 53/53。当前 Activity 183/264 行；本轮不重跑 connected/Release，前段 15/15 与 R8 只作历史结果。
 Release Maven、POM 元数据校验、可选 PGP 签名、Consumer R8 入口和 BCV 已配置，七模块
 ABI 基线已由 `apiDump/apiCheck` 建立。原五库与 Demo Release 已通过，两个 Navi Release AAR
 也已单独通过；Amap Navi 与 Baidu Navi Demo 的 minify Release/R8 均已通过并生成 unsigned APK，本地原五模块

@@ -35,6 +35,7 @@ private fun String.label() = this
 class Host {
     /** 恢复键。 */
     companion object {}
+    /** 页面持有的监听对象引用。 */
     val callback =
         /** 回调桥。 */
         object : Listener {
@@ -49,8 +50,11 @@ class Host {
 
     def test_comments_strings_and_class_literals_are_not_declarations(self):
         source = '''// class False fun false()
+/** 原始字符串示例。 */
 val raw = """object fun interface"""
+/** 普通字符串示例。 */
 val text = "class object constructor fun"
+/** 类型引用不是类声明。 */
 val type = Host::class
 /* outer /* class Inner */ fun ignored() */
 /** 真正接口。 */
@@ -94,6 +98,38 @@ fun interface Listener {}
                 file.write_text('', encoding='utf-8')
             self.assertEqual(['app/src/debug/kotlin/Debug.kt', 'app/src/main/kotlin/Demo.kt'],
                              [file.relative_to(root).as_posix() for file in production_files(root)])
+
+    def test_data_fields_need_individual_chinese_kdoc(self):
+        source = '/** 状态类。 */\ndata class State(val ready: Boolean, val speed: Int)'
+        count, errors = check_source(source)
+        self.assertEqual(1, count)
+        self.assertEqual(['missing-chinese-kdoc:property:ready', 'missing-chinese-kdoc:property:speed'],
+                         [rule for _, rule in errors])
+
+    def test_data_fields_and_enum_constructor_property_can_be_documented(self):
+        source = '/** 分类。 */\nenum class Category(/** 中文标题。 */ val title: String) { /** 常用项。 */ COMMON("常用") }'
+        self.assertEqual((1, []), check_source(source))
+
+    def test_each_enum_entry_needs_its_own_chinese_kdoc(self):
+        source = '/** 语义。 */\nenum class Tone { NEUTRAL, /** 成功语义。 */ SUCCESS, ERROR }'
+        count, errors = check_source(source)
+        self.assertEqual(1, count)
+        self.assertEqual(['missing-chinese-kdoc:enum-entry:NEUTRAL', 'missing-chinese-kdoc:enum-entry:ERROR'],
+                         [rule for _, rule in errors])
+
+    def test_members_and_top_level_constants_cannot_borrow_previous_docs(self):
+        source = '/** 宿主。 */\nclass Host {\nvar closed = false\n/** 默认常量。 */\ncompanion object { const val LIMIT = 2 }\n}\nval value = 1'
+        _, errors = check_source(source)
+        self.assertEqual(['missing-chinese-kdoc:property:closed', 'missing-chinese-kdoc:property:LIMIT',
+                          'missing-chinese-kdoc:property:value'], [rule for _, rule in errors])
+
+    def test_local_variables_do_not_require_field_kdoc(self):
+        source = '/** 宿主。 */\nclass Host { /** 查询。 */ fun query() { val value = 1; listOf(1).forEach { val item = it } } }'
+        self.assertEqual((2, []), check_source(source))
+
+    def test_annotated_member_property_is_supported(self):
+        source = '/** 宿主。 */\nclass Host { /** 跨线程关闭标记。 */ @Volatile private var closed = false }'
+        self.assertEqual((1, []), check_source(source))
 
 
 if __name__ == '__main__':
