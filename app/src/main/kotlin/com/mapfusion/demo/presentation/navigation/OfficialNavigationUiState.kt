@@ -18,12 +18,14 @@ internal val OFFICIAL_NAVIGATION_TRAVEL_MODE_ORDER = listOf(
     TravelMode.ELECTRIC_BICYCLE,
 )
 
+/** 规划、导航或暂停都视为忙碌，不能切换请求模式或再次启动。 */
 internal val OFFICIAL_NAVIGATION_ACTIVE_STATES = setOf(
     OfficialNavigationState.PLANNING,
     OfficialNavigationState.NAVIGATING,
     OfficialNavigationState.PAUSED,
 )
 
+/** 终态需要占位提示；与运行中的忙碌状态互斥。 */
 internal val OFFICIAL_NAVIGATION_TERMINAL_STATES = setOf(
     OfficialNavigationState.ARRIVED,
     OfficialNavigationState.STOPPED,
@@ -59,19 +61,26 @@ internal data class OfficialNavigationUiState(
     val placeholderVisible: Boolean = true,
     val placeholderTone: NaviTone = NaviTone.NEUTRAL,
 ) {
-    val busy: Boolean get() = startRequestPending || navigationState in OFFICIAL_NAVIGATION_ACTIVE_STATES
+    /** 权限等待和提交等待均占用开始入口，防止重复请求及选择语义漂移。 */
+    val busy: Boolean get() = pendingRealNavigationStart || startRequestPending ||
+        navigationState in OFFICIAL_NAVIGATION_ACTIVE_STATES
+    /** 只有实际导航或暂停时允许重算、全览和跟随等运行期控制。 */
     val navigationActive: Boolean
         get() = navigationState == OfficialNavigationState.NAVIGATING ||
             navigationState == OfficialNavigationState.PAUSED
 }
 
+/** 输入任意数字速度，先用宽整数限幅到演示范围，再转换为 km/h 整数。 */
 internal fun clampSimulationSpeed(value: Number): Int =
     value.toLong().coerceIn(OFFICIAL_NAVIGATION_MIN_SPEED.toLong(), OFFICIAL_NAVIGATION_MAX_SPEED.toLong()).toInt()
 
+/** 输入路线下标与数量，空列表归零，非空列表夹紧上下界。 */
 internal fun clampRouteIndex(index: Int, routeCount: Int): Int =
     if (routeCount <= 0) 0 else index.coerceIn(0, routeCount - 1)
 
+/** 输入出行方式，调用统一契约归一骑行别名，不改变厂商能力表。 */
 internal fun canonicalTravelMode(mode: TravelMode): TravelMode = mode.canonical()
 
+/** 判断统一引擎状态是否结束，用于占位展示，不调用原生引擎。 */
 internal fun OfficialNavigationState.isTerminal(): Boolean =
     this in OFFICIAL_NAVIGATION_TERMINAL_STATES

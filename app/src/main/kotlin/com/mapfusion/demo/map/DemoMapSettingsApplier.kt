@@ -5,8 +5,9 @@ import com.mapfusion.api.model.MapResult
 import com.mapfusion.api.model.MapUiOptions
 import com.mapfusion.demo.presentation.main.DemoMapSettings
 
-/** Same settings path for initial creation, configuration restore and explicit user edits. */
+/** 初始化、重建恢复及用户应用共用的地图设置路径，避免 UI 与原生地图各用默认值。 */
 internal object DemoMapSettingsApplier {
+    /** 按顺序应用设置并返回 SDK 接受的快照；原生操作非事务，失败不宣称已全部生效。 */
     fun apply(controller: MapController, settings: DemoMapSettings): MapResult<DemoMapSettings> {
         val type = when (val result = controller.applyMapType(settings.mapType)) {
             is MapResult.Success -> result.data

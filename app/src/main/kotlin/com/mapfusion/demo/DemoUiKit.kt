@@ -20,6 +20,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 
+/** 消息语义到视觉色板的映射，状态层不直接依赖 Android 颜色。 */
 internal enum class StatusTone(
     val accentColor: Int,
     val badgeBgColor: Int,
@@ -57,6 +58,7 @@ internal enum class StatusTone(
     ),
 }
 
+/** 两页共享的视觉组件与样式工厂，只处理外观，不承接地图业务或会话生命周期。 */
 internal object DemoTheme {
     val PAGE_BG = Color.rgb(241, 245, 249)          // Slate 100
     val SURFACE = Color.WHITE
@@ -91,12 +93,15 @@ internal object DemoTheme {
 
     val ROUTE_BLUE = Color.rgb(25, 118, 210)
 
+    /** 根据当前屏幕密度转换整数 dp，统一共享组件尺寸。 */
     fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density + 0.5f).toInt()
 
+    /** 转换浮点 dp，保留圆角和描边计算所需的精度。 */
     fun dpF(context: Context, value: Float): Float =
         value * context.resources.displayMetrics.density
 
+    /** 构造可选描边的圆角背景，每次返回独立 Drawable 避免跨 View 状态串扰。 */
     fun roundedRect(
         context: Context,
         fillColor: Int,
@@ -112,6 +117,7 @@ internal object DemoTheme {
         }
     }
 
+    /** 构造仅顶部圆角的底部工具面板背景，不修改系统窗口形状。 */
     fun topSheetBackground(
         context: Context,
         fillColor: Int = SURFACE,
@@ -125,6 +131,7 @@ internal object DemoTheme {
         setStroke(dp(context, 1), strokeColor)
     }
 
+    /** 组合正常、按压和水波纹状态，调用者只提供颜色与尺寸。 */
     fun interactiveSurface(
         context: Context,
         fillColor: Int,
@@ -143,6 +150,7 @@ internal object DemoTheme {
         return RippleDrawable(ColorStateList.valueOf(pressedColor), stateList, mask)
     }
 
+    /** 根据业务语义格式化结果标题和详情，不在视觉层更改业务状态。 */
     fun formatStatusText(
         title: String,
         detail: String,
@@ -183,11 +191,11 @@ internal object DemoTheme {
             builder.length,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
         )
-val cleanDetail = detail.trim()
-if (cleanDetail.isNotEmpty()) {
-    builder.appendLine()
-    val detailStart = builder.length
-    builder.append(cleanDetail)
+        val cleanDetail = detail.trim()
+        if (cleanDetail.isNotEmpty()) {
+            builder.appendLine()
+            val detailStart = builder.length
+            builder.append(cleanDetail)
             builder.setSpan(
                 ForegroundColorSpan(
                     when (tone) {
@@ -209,6 +217,7 @@ if (cleanDetail.isNotEmpty()) {
         return builder
     }
 
+    /** 创建品牌徽标，装饰文字不作为无障碍操作入口。 */
     fun buildBrandBadge(context: Context): View = FrameLayout(context).apply {
         background = roundedRect(
             context = context,
@@ -234,6 +243,7 @@ if (cleanDetail.isNotEmpty()) {
         )
     }
 
+    /** 创建工具面板的装饰拖柄，不绑定任何地图操作。 */
     fun buildSheetHandle(context: Context): View = FrameLayout(context).apply {
         addView(
             View(context).apply {
@@ -248,6 +258,7 @@ if (cleanDetail.isNotEmpty()) {
         )
     }
 
+    /** 创建弹窗分节卡片，统一内边距、背景和边框。 */
     fun dialogSectionCard(context: Context): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(context, 12), dp(context, 10), dp(context, 12), dp(context, 10))

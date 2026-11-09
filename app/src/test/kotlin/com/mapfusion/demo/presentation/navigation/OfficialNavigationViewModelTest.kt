@@ -30,6 +30,7 @@ class OfficialNavigationViewModelTest {
     @get:Rule
     val mainDispatcherRule: TestWatcher = MainDispatcherRule()
 
+    /** 恢复已保存选择并验证后续选择写回同一保存协议，可供新页面再次恢复。 */
     @Test
     fun `restores saved options and persists new selections`() {
         val handle = SavedStateHandle(
@@ -75,6 +76,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(100, recreated.state.value.simulationSpeed)
     }
 
+    /** 未知枚举和越界速度应确定性降级，不让非法恢复数据进入导航请求。 */
     @Test
     fun `invalid enum names and out of range speed fall back deterministically`() {
         val handle = SavedStateHandle(
@@ -97,6 +99,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(OfficialNavigationDayNightMode.AUTO, state.dayNightMode)
     }
 
+    /** 当前变体不支持的保存选项降级到能力表中的合法选择，后续非法选择也被拒绝。 */
     @Test
     fun `unsupported saved options downgrade to first supported choices`() {
         val handle = SavedStateHandle(
@@ -119,6 +122,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(TravelMode.DRIVING, viewModel.state.value.travelMode)
     }
 
+    /** 所有模拟速度入口统一限幅到 20–120 km/h，范围内的值保持原样。 */
     @Test
     fun `simulation speed clamps to supported range`() {
         val viewModel = OfficialNavigationViewModel(SavedStateHandle())
@@ -130,6 +134,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(75, viewModel.state.value.simulationSpeed)
     }
 
+    /** 路线下标夹紧到列表范围，清空路线后固定归零，避免渲染和切换越界。 */
     @Test
     fun `route index stays inside route bounds`() {
         val viewModel = OfficialNavigationViewModel(SavedStateHandle())
@@ -149,6 +154,7 @@ class OfficialNavigationViewModelTest {
         assertTrue(viewModel.state.value.routeSummaries.isEmpty())
     }
 
+    /** 新会话重置旧运行状态与权限等待，但真实/模拟、出行、速度、语音和配色保持恢复值。 */
     @Test
     fun `runtime reset clears phantom navigation but keeps options`() {
         val viewModel = OfficialNavigationViewModel(
@@ -193,6 +199,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(OfficialNavigationDayNightMode.NIGHT, reset.dayNightMode)
     }
 
+    /** 初始化、导航、READY、到达和失败共同验证等待标记与占位层随状态归约更新。 */
     @Test
     fun `state transitions clear pending and drive placeholder`() {
         val viewModel = OfficialNavigationViewModel(SavedStateHandle())
@@ -226,6 +233,7 @@ class OfficialNavigationViewModelTest {
         assertTrue(viewModel.state.value.placeholderVisible)
     }
 
+    /** 导航运行标记不持久化，SavedStateHandle 只保存用户可恢复的选择。 */
     @Test
     fun `runtime flags are not written to saved state`() {
         val handle = SavedStateHandle()
@@ -236,6 +244,7 @@ class OfficialNavigationViewModelTest {
         assertNull(handle.get<Boolean>("officialNavigation.started"))
         assertEquals("REAL", handle.get<String>(OfficialNavigationViewModel.KEY_NAVIGATION_MODE))
     }
+    /** 宽整数保存值先限幅再转 Int，极大速度不能因溢出落到错误下界。 */
     @Test
     fun `large saved speed clamps before integer conversion`() {
         val viewModel = OfficialNavigationViewModel(SavedStateHandle(mapOf(
@@ -244,6 +253,7 @@ class OfficialNavigationViewModelTest {
         assertEquals(OFFICIAL_NAVIGATION_MAX_SPEED, viewModel.state.value.simulationSpeed)
     }
 
+    /** 隐私撤回立即阻断控件并清除启动、导航和权限运行标记。 */
     @Test
     fun `withdrawn consent blocks controls and clears active runtime`() {
         val viewModel = OfficialNavigationViewModel(SavedStateHandle())
@@ -261,14 +271,17 @@ class OfficialNavigationViewModelTest {
 
 }
 
+/** 每个 JVM 用例临时替换主协程调度器，结束后恢复，避免跨测试污染。 */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MainDispatcherRule(
     private val dispatcher: TestDispatcher = StandardTestDispatcher(),
 ) : TestWatcher() {
+    /** 输入测试描述，在用例开始前把 Dispatchers.Main 替换为可控测试调度器。 */
     override fun starting(description: Description) {
         Dispatchers.setMain(dispatcher)
     }
 
+    /** 用例结束后撤销主调度器替换，即使用例失败也不影响后续测试。 */
     override fun finished(description: Description) {
         Dispatchers.resetMain()
     }
