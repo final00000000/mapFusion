@@ -3,7 +3,9 @@ package com.mapfusion.amap
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Point
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import com.amap.api.maps.AMap
 import com.amap.api.maps.CameraUpdateFactory
@@ -11,9 +13,11 @@ import com.amap.api.maps.MapView
 import com.amap.api.maps.model.BitmapDescriptor
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.Circle
+import com.amap.api.maps.model.CustomMapStyleOptions as AmapCustomMapStyleOptions
 import com.amap.api.maps.model.GroundOverlay
 import com.amap.api.maps.model.HeatmapTileProvider
 import com.amap.api.maps.model.Marker
+import com.amap.api.maps.model.MyTrafficStyle
 import com.amap.api.maps.model.MultiPointItem as AmapMultiPointItem
 import com.amap.api.maps.model.MultiPointOverlay as NativeAmapMultiPointOverlay
 import com.amap.api.maps.model.MultiPointOverlayOptions as NativeAmapMultiPointOverlayOptions
@@ -39,28 +43,44 @@ import com.mapfusion.api.model.LatLng
 import com.mapfusion.api.model.LatLngBounds
 import com.mapfusion.api.model.MapCallback
 import com.mapfusion.api.model.MapCircle
+import com.mapfusion.api.model.MapCustomStyleFeature
+import com.mapfusion.api.model.MapCustomStyleOptions
 import com.mapfusion.api.model.MapError
 import com.mapfusion.api.model.MapGroundOverlay
 import com.mapfusion.api.model.MapHeatMap
 import com.mapfusion.api.model.MapImage
+import com.mapfusion.api.model.MapLanguage
+import com.mapfusion.api.model.MapLegalInfo
+import com.mapfusion.api.model.MapIndoorBuilding
+import com.mapfusion.api.model.MapIndoorFloor
+import com.amap.api.maps.model.IndoorBuildingInfo
 import com.mapfusion.api.model.MapMarker
 import com.mapfusion.api.model.MapMultiPointOverlay
 import com.mapfusion.api.model.MapOverlay
+import com.mapfusion.api.model.MapPoiClick
 import com.mapfusion.api.model.MapPolygon
 import com.mapfusion.api.model.MapPolyline
 import com.mapfusion.api.model.MapResult
 import com.mapfusion.api.model.MapSnapshot
 import com.mapfusion.api.model.MapTextOverlay
 import com.mapfusion.api.model.MapTileOverlay
+import com.mapfusion.api.model.MapTrafficStyle
+import com.mapfusion.api.model.MapTouchAction
+import com.mapfusion.api.model.MapTouchEvent
 import com.mapfusion.api.model.MapType
+import com.mapfusion.api.model.MapUiFeature
 import com.mapfusion.api.model.MapUiOptions
+import com.mapfusion.api.model.MapVisibleRegion
 import com.mapfusion.api.model.MarkerIcon
+import com.mapfusion.api.model.MarkerDragEvent
+import com.mapfusion.api.model.MarkerDragPhase
 import com.mapfusion.api.model.MarkerOptions
 import com.mapfusion.api.model.MultiPointItem
 import com.mapfusion.api.model.MultiPointOverlayOptions
 import com.mapfusion.api.model.PolygonOptions
 import com.mapfusion.api.model.PolylineOptions
 import com.mapfusion.api.model.RequestHandle
+import com.mapfusion.api.model.ScreenPoint
 import com.mapfusion.api.model.TextHorizontalAlignment
 import com.mapfusion.api.model.TextOverlayOptions
 import com.mapfusion.api.model.TextVerticalAlignment
@@ -84,22 +104,46 @@ internal class AmapMapController(
     private var mapClickListener: ((LatLng) -> Unit)? = null
     private var overlayClickListener: ((MapOverlay) -> Boolean)? = null
     private var destroyed = false
+    private var indoorBuilding: MapIndoorBuilding? = null
+    private var indoorListener: ((MapIndoorBuilding?) -> Unit)? = null
 
     override val view: View = mapView
 
     internal val nativeMap: AMap get() = map
     internal val nativeMapView: MapView get() = mapView
 
-    override fun onCreate(savedState: Bundle?) = mapView.onCreate(savedState)
+    override fun onCreate(savedState: Bundle?) {
+        mapView.onCreate(savedState)
+        map.setOnIndoorBuildingActiveListener { info ->
+            if (!destroyed) {
+                indoorBuilding = info?.poiid?.takeIf { it.isNotBlank() }?.let { id ->
+                    MapIndoorBuilding(
+                        id,
+                        info.floor_indexs?.toList().orEmpty().mapIndexed { index, floor ->
+                            MapIndoorFloor(floor.toString(), info.floor_names?.getOrNull(index) ?: floor.toString())
+                        },
+                        info.activeFloorIndex.toString(),
+                    )
+                }
+                indoorListener?.invoke(indoorBuilding)
+            }
+        }
+    }
     override fun onResume() = mapView.onResume()
     override fun onPause() = mapView.onPause()
     override fun onDestroy() {
         if (destroyed) return
         destroyed = true
+        indoorListener = null
+        indoorBuilding = null
         try {
+            runCatching { map.setOnIndoorBuildingActiveListener(null) }
             runCatching { setOnMapClickListener(null) }
+            runCatching { setOnMapPoiClickListener(null) }
             runCatching { setOnMapLongClickListener(null) }
             runCatching { setOnMarkerClickListener(null) }
+            runCatching { setOnMarkerDragListener(null) }
+            runCatching { setOnMapTouchListener(null) }
             runCatching { setOnMultiPointClickListener(null) }
             runCatching { setOnOverlayClickListener(null) }
             runCatching { setOnCameraIdleListener(null) }
@@ -161,6 +205,25 @@ internal class AmapMapController(
         map.minZoomLevel = minZoom
         map.maxZoomLevel = maxZoom
     }
+
+    override fun screenPointOf(location: LatLng): ScreenPoint? = runCatching {
+        map.projection.toScreenLocation(location.toAmap())?.let { ScreenPoint(it.x, it.y) }
+    }.getOrNull()
+
+    override fun coordinateAt(point: ScreenPoint): LatLng? = runCatching {
+        map.projection.fromScreenLocation(Point(point.x, point.y))?.toFusion(CoordType.GCJ02)
+    }.getOrNull()
+
+    override fun visibleRegion(): MapVisibleRegion? = runCatching {
+        map.projection.visibleRegion?.let { region ->
+            MapVisibleRegion(
+                nearLeft = region.nearLeft.toFusion(CoordType.GCJ02),
+                nearRight = region.nearRight.toFusion(CoordType.GCJ02),
+                farLeft = region.farLeft.toFusion(CoordType.GCJ02),
+                farRight = region.farRight.toFusion(CoordType.GCJ02),
+            )
+        }
+    }.getOrNull()
 
     override fun addMarker(options: MarkerOptions): MapMarker {
         val native = map.addMarker(
@@ -361,8 +424,106 @@ internal class AmapMapController(
     override fun setTrafficEnabled(enabled: Boolean) = map.setTrafficEnabled(enabled)
     override fun setZoomControlsEnabled(enabled: Boolean) = map.uiSettings.setZoomControlsEnabled(enabled)
     override fun setBuildingsEnabled(enabled: Boolean) = map.showBuildings(enabled)
-    override fun setIndoorEnabled(enabled: Boolean) = map.showIndoorMap(enabled)
+    override fun setIndoorEnabled(enabled: Boolean) {
+        map.showIndoorMap(enabled)
+        if (!enabled && indoorBuilding != null) {
+            indoorBuilding = null
+            indoorListener?.invoke(null)
+        }
+    }
+    override fun supportsIndoorFloorControl(): Boolean = true
+    override fun activeIndoorBuilding(): MapIndoorBuilding? = if (destroyed) null else indoorBuilding
+    override fun setOnIndoorBuildingListener(listener: ((MapIndoorBuilding?) -> Unit)?) {
+        check(!destroyed || listener == null) { "地图已销毁" }
+        indoorListener = listener
+    }
+
+    override fun switchIndoorFloor(buildingId: String, floorId: String): MapResult<Unit> {
+        val current = activeIndoorBuilding()
+        if (current == null || current.id != buildingId || current.floors.none { it.id == floorId }) {
+            return MapResult.Failure(MapError(ErrorType.INVALID_PARAM, "当前室内建筑或楼层已不可用，请重新读取室内信息"))
+        }
+        return try {
+            map.setIndoorBuildingInfo(IndoorBuildingInfo().apply {
+                poiid = buildingId
+                activeFloorIndex = floorId.toInt()
+                activeFloorName = current.floors.first { it.id == floorId }.name
+                floor_indexs = current.floors.map { it.id.toInt() }.toIntArray()
+                floor_names = current.floors.map { it.name }.toTypedArray()
+            })
+            MapResult.Success(Unit)
+        } catch (error: Exception) {
+            MapResult.Failure(MapError(ErrorType.UNKNOWN, "高德室内切层失败：${error.message}", cause = error))
+        }
+    }
     override fun setMapPoiEnabled(enabled: Boolean) = map.showMapText(enabled)
+
+    override fun supportedMapLanguages(): Set<MapLanguage> = AMAP_SUPPORTED_MAP_LANGUAGES
+
+    override fun applyMapLanguage(language: MapLanguage): MapResult<MapLanguage> = runCatching {
+        map.setMapLanguage(
+            when (language) {
+                MapLanguage.CHINESE -> AMap.CHINESE
+                MapLanguage.ENGLISH -> AMap.ENGLISH
+                MapLanguage.LOCAL -> AMap.LOCAL
+            },
+        )
+        MapResult.Success(language)
+    }.getOrElse { error ->
+        MapResult.Failure(
+            MapError(ErrorType.UNKNOWN, "高德底图语言应用失败：${error.message.orEmpty()}", cause = error),
+        )
+    }
+
+    override fun applyTrafficStyle(style: MapTrafficStyle): MapResult<Unit> = runCatching {
+        map.myTrafficStyle = MyTrafficStyle().apply {
+            extremelySmoothColor = style.smoothColor
+            smoothColor = style.smoothColor
+            slowColor = style.slowColor
+            congestedColor = style.congestedColor
+            seriousCongestedColor = style.seriouslyCongestedColor
+        }
+        MapResult.Success(Unit)
+    }.getOrElse { error ->
+        MapResult.Failure(
+            MapError(ErrorType.UNKNOWN, "高德路况配色应用失败：${error.message.orEmpty()}", cause = error),
+        )
+    }
+
+    override fun legalInfo(): MapLegalInfo? = runCatching {
+        MapLegalInfo(
+            mapContentApprovalNumber = map.mapContentApprovalNumber.nonBlankOrNull(),
+            satelliteImageApprovalNumber = map.satelliteImageApprovalNumber.nonBlankOrNull(),
+            terrainApprovalNumber = map.terrainApprovalNumber.nonBlankOrNull(),
+        )
+    }.getOrNull()
+
+    override fun supportedCustomStyleFeatures(): Set<MapCustomStyleFeature> =
+        AMAP_SUPPORTED_CUSTOM_STYLE_FEATURES
+
+    override fun applyCustomStyle(options: MapCustomStyleOptions): MapResult<Unit> {
+        val unsupported = options.requestedCustomStyleFeatures() - supportedCustomStyleFeatures()
+        if (unsupported.isNotEmpty()) {
+            return MapResult.Failure(
+                MapError(ErrorType.UNSUPPORTED, "高德地图不支持自定义样式来源：${unsupported.joinToString()}"),
+            )
+        }
+        return runCatching {
+            val nativeOptions = AmapCustomMapStyleOptions()
+                .setEnable(options.enabled)
+                .apply {
+                    options.localStylePath?.let(::setStyleDataPath)
+                    options.styleId?.let(::setStyleId)
+                    options.localTexturePath?.let(::setStyleTexturePath)
+                }
+            map.setCustomMapStyle(nativeOptions)
+            MapResult.Success(Unit)
+        }.getOrElse { error ->
+            MapResult.Failure(
+                MapError(ErrorType.UNKNOWN, "高德自定义地图样式提交失败：${error.message.orEmpty()}", cause = error),
+            )
+        }
+    }
 
     override fun supportedMapTypes(): Set<MapType> = AMAP_SUPPORTED_MAP_TYPES
 
@@ -384,6 +545,8 @@ internal class AmapMapController(
         else -> MapType.NORMAL
     }
 
+    override fun supportedUiFeatures(): Set<MapUiFeature> = AMAP_SUPPORTED_UI_FEATURES
+
     override fun setUiOptions(options: MapUiOptions) {
         map.uiSettings.apply {
             setZoomControlsEnabled(options.zoomControlsEnabled)
@@ -394,6 +557,9 @@ internal class AmapMapController(
             setZoomGesturesEnabled(options.zoomGesturesEnabled)
             setRotateGesturesEnabled(options.rotateGesturesEnabled)
             setTiltGesturesEnabled(options.tiltGesturesEnabled)
+            setIndoorSwitchEnabled(options.indoorSwitchEnabled)
+            setZoomInByScreenCenter(options.zoomInByScreenCenter)
+            setGestureScaleByMapCenter(options.gestureScaleByMapCenter)
         }
     }
 
@@ -446,6 +612,20 @@ internal class AmapMapController(
         updateMapClickDispatcher()
     }
 
+    override fun setOnMapPoiClickListener(listener: ((MapPoiClick) -> Unit)?) {
+        map.setOnPOIClickListener(listener?.let { callback ->
+            AMap.OnPOIClickListener { poi ->
+                callback(
+                    MapPoiClick(
+                        id = poi.poiId.nonBlankOrNull(),
+                        name = poi.name.nonBlankOrNull(),
+                        position = poi.coordinate.toFusion(CoordType.GCJ02),
+                    ),
+                )
+            }
+        })
+    }
+
     override fun setOnMapLongClickListener(listener: ((LatLng) -> Unit)?) {
         map.setOnMapLongClickListener(listener?.let { callback ->
             AMap.OnMapLongClickListener { point -> callback(point.toFusion(CoordType.GCJ02)) }
@@ -457,6 +637,27 @@ internal class AmapMapController(
             AMap.OnMarkerClickListener { marker ->
                 (overlays[marker] as? MapMarker)?.let(callback) ?: false
             }
+        })
+    }
+
+    override fun setOnMarkerDragListener(listener: ((MarkerDragEvent) -> Unit)?) {
+        map.setOnMarkerDragListener(listener?.let { callback ->
+            object : AMap.OnMarkerDragListener {
+                override fun onMarkerDragStart(marker: Marker) = deliver(marker, MarkerDragPhase.STARTED)
+                override fun onMarkerDrag(marker: Marker) = deliver(marker, MarkerDragPhase.DRAGGING)
+                override fun onMarkerDragEnd(marker: Marker) = deliver(marker, MarkerDragPhase.ENDED)
+
+                private fun deliver(marker: Marker, phase: MarkerDragPhase) {
+                    val fusionMarker = overlays[marker] as? MapMarker ?: return
+                    callback(MarkerDragEvent(fusionMarker, phase, marker.position.toFusion(CoordType.GCJ02)))
+                }
+            }
+        })
+    }
+
+    override fun setOnMapTouchListener(listener: ((MapTouchEvent) -> Unit)?) {
+        map.setOnMapTouchListener(listener?.let { callback ->
+            AMap.OnMapTouchListener { event -> callback(event.toFusionTouchEvent()) }
         })
     }
 
@@ -942,3 +1143,53 @@ internal val AMAP_SUPPORTED_MAP_TYPES: Set<MapType> = setOf(
     MapType.NIGHT,
     MapType.NAVIGATION,
 )
+
+internal val AMAP_SUPPORTED_MAP_LANGUAGES: Set<MapLanguage> = setOf(
+    MapLanguage.CHINESE,
+    MapLanguage.ENGLISH,
+    MapLanguage.LOCAL,
+)
+
+internal val AMAP_SUPPORTED_UI_FEATURES: Set<MapUiFeature> = setOf(
+    MapUiFeature.ZOOM_CONTROLS,
+    MapUiFeature.SCALE_CONTROLS,
+    MapUiFeature.COMPASS,
+    MapUiFeature.MY_LOCATION_BUTTON,
+    MapUiFeature.SCROLL_GESTURES,
+    MapUiFeature.ZOOM_GESTURES,
+    MapUiFeature.ROTATE_GESTURES,
+    MapUiFeature.TILT_GESTURES,
+    MapUiFeature.INDOOR_SWITCH,
+    MapUiFeature.ZOOM_IN_BY_SCREEN_CENTER,
+    MapUiFeature.GESTURE_SCALE_BY_MAP_CENTER,
+)
+
+internal val AMAP_SUPPORTED_CUSTOM_STYLE_FEATURES: Set<MapCustomStyleFeature> = setOf(
+    MapCustomStyleFeature.LOCAL_STYLE_FILE,
+    MapCustomStyleFeature.STYLE_ID,
+    MapCustomStyleFeature.LOCAL_TEXTURE_FILE,
+)
+
+private fun MapCustomStyleOptions.requestedCustomStyleFeatures(): Set<MapCustomStyleFeature> = buildSet {
+    if (!enabled) return@buildSet
+    if (localStylePath != null) add(MapCustomStyleFeature.LOCAL_STYLE_FILE)
+    if (styleId != null) add(MapCustomStyleFeature.STYLE_ID)
+    if (localTexturePath != null) add(MapCustomStyleFeature.LOCAL_TEXTURE_FILE)
+}
+
+private fun MotionEvent.toFusionTouchEvent() = MapTouchEvent(
+    action = when (actionMasked) {
+        MotionEvent.ACTION_DOWN -> MapTouchAction.DOWN
+        MotionEvent.ACTION_UP -> MapTouchAction.UP
+        MotionEvent.ACTION_MOVE -> MapTouchAction.MOVE
+        MotionEvent.ACTION_CANCEL -> MapTouchAction.CANCEL
+        MotionEvent.ACTION_POINTER_DOWN -> MapTouchAction.POINTER_DOWN
+        MotionEvent.ACTION_POINTER_UP -> MapTouchAction.POINTER_UP
+        else -> MapTouchAction.OTHER
+    },
+    x = x,
+    y = y,
+    pointerCount = pointerCount,
+)
+
+private fun String?.nonBlankOrNull(): String? = this?.takeIf(String::isNotBlank)

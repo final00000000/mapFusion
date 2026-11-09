@@ -5,7 +5,6 @@ import com.baidu.mapapi.search.core.PoiInfo
 import com.baidu.mapapi.search.core.SearchResult
 import com.baidu.mapapi.search.poi.OnGetPoiSearchResultListener
 import com.baidu.mapapi.search.poi.PoiCitySearchOption
-import com.baidu.mapapi.search.poi.PoiDetailResult
 import com.baidu.mapapi.search.poi.PoiDetailSearchOption
 import com.baidu.mapapi.search.poi.PoiDetailSearchResult
 import com.baidu.mapapi.search.poi.PoiIndoorResult
@@ -127,13 +126,7 @@ internal class BaiduPoiSearcher(
                                 .tag(request.category.orEmpty())
                                 .location(requireNotNull(nativeCenter))
                                 .radius(request.radiusMeters.coerceAtLeast(1))
-                                .sortType(
-                                    if (request.sort == PoiSort.DISTANCE) {
-                                        PoiSortType.distance_from_near_to_far
-                                    } else {
-                                        PoiSortType.comprehensive
-                                    },
-                                )
+                                .sortTypeCompat(request.sort)
                                 .pageNum(request.pageIndex.coerceAtLeast(0))
                                 .pageCapacity(request.pageSize.coerceIn(1, 50)),
                         )
@@ -310,13 +303,15 @@ internal class BaiduPoiSearcher(
         return async
     }
 
+    // Search 8.2.0 still requires the deprecated detail overload on every listener implementation.
+    @Suppress("DEPRECATION")
     private fun poiListener(
         onResult: (PoiResult) -> Unit = {},
-        onDetail: (PoiDetailResult) -> Unit = {},
+        onDetail: (com.baidu.mapapi.search.poi.PoiDetailResult) -> Unit = {},
         onDetailList: (PoiDetailSearchResult) -> Unit = {},
     ) = object : OnGetPoiSearchResultListener {
         override fun onGetPoiResult(result: PoiResult) = onResult(result)
-        override fun onGetPoiDetailResult(result: PoiDetailResult) = onDetail(result)
+        override fun onGetPoiDetailResult(result: com.baidu.mapapi.search.poi.PoiDetailResult) = onDetail(result)
         override fun onGetPoiDetailResult(result: PoiDetailSearchResult) = onDetailList(result)
         override fun onGetPoiIndoorResult(result: PoiIndoorResult) = Unit
     }
@@ -329,6 +324,17 @@ internal class BaiduPoiSearcher(
 
 private fun LatLng.toBaiduPoiPoint() = toBaiduSdkLatLng()
 
+// Search 8.2.0 deprecates sortType without an equivalent replacement.
+@Suppress("DEPRECATION")
+private fun PoiNearbySearchOption.sortTypeCompat(sort: PoiSort): PoiNearbySearchOption =
+    sortType(
+        if (sort == PoiSort.DISTANCE) {
+            PoiSortType.distance_from_near_to_far
+        } else {
+            PoiSortType.comprehensive
+        },
+    )
+
 private fun PoiInfo.toFusionPoi(): PoiItem? {
     val point = location?.let { LatLng(it.latitude, it.longitude, CoordType.BD09) }
         ?.takeIf(LatLng::isValidPoiPoint)
@@ -340,7 +346,9 @@ private fun PoiInfo.toFusionPoi(): PoiItem? {
     )
 }
 
-private fun PoiDetailResult.toFusionPoi(): PoiItem? {
+// Converts payloads that may still arrive through the required legacy callback above.
+@Suppress("DEPRECATION")
+private fun com.baidu.mapapi.search.poi.PoiDetailResult.toFusionPoi(): PoiItem? {
     val nativePoint = location ?: return null
     val point = LatLng(nativePoint.latitude, nativePoint.longitude, CoordType.BD09)
         .takeIf(LatLng::isValidPoiPoint)

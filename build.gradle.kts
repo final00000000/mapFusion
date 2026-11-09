@@ -15,7 +15,7 @@ plugins {
 }
 
 apiValidation {
-    // Demo 不是发布库；其余五个模块的公开 ABI 必须经过 apiCheck。
+    // Demo 不是发布库；其余发布模块的公开 ABI 必须经过 apiCheck。
     ignoredProjects.add("app")
 }
 
@@ -82,6 +82,8 @@ val publicationDescriptions = mapOf(
     "map-factory" to "Map Fusion Provider 注册、会话与通用能力编排",
     "map-baidu" to "Map Fusion 百度地图适配器",
     "map-amap" to "Map Fusion 高德地图适配器",
+    "map-baidu-navi" to "Map Fusion 百度官方 App 内导航可选适配器",
+    "map-amap-navi" to "Map Fusion 高德官方 App 内导航可选适配器",
     "map-fusion-full" to "Map Fusion 百度与高德双厂商快速接入聚合包",
 )
 

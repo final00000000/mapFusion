@@ -1,9 +1,18 @@
 public final class com/mapfusion/amap/AmapNativeAccess {
 	public final fun mapOf (Lcom/mapfusion/api/capability/MapController;)Lcom/amap/api/maps/AMap;
 	public final fun mapViewOf (Lcom/mapfusion/api/capability/MapController;)Lcom/amap/api/maps/MapView;
+	public final fun newBusLineSearch (Lcom/amap/api/services/busline/BusLineQuery;)Lcom/amap/api/services/busline/BusLineSearch;
+	public final fun newBusStationSearch (Lcom/amap/api/services/busline/BusStationQuery;)Lcom/amap/api/services/busline/BusStationSearch;
+	public final fun newDistanceSearch ()Lcom/amap/api/services/route/DistanceSearch;
+	public final fun newDistrictSearch ()Lcom/amap/api/services/district/DistrictSearch;
 	public final fun newGeocodeSearch ()Lcom/amap/api/services/geocoder/GeocodeSearch;
+	public final fun newInputTips (Lcom/amap/api/services/help/InputtipsQuery;)Lcom/amap/api/services/help/Inputtips;
+	public final fun newOfflineMapManager (Lcom/amap/api/maps/offlinemap/OfflineMapManager$OfflineMapDownloadListener;)Lcom/amap/api/maps/offlinemap/OfflineMapManager;
 	public final fun newPoiSearch (Lcom/amap/api/services/poisearch/PoiSearch$Query;)Lcom/amap/api/services/poisearch/PoiSearch;
+	public final fun newPoiSearchV2 (Lcom/amap/api/services/poisearch/PoiSearchV2$Query;)Lcom/amap/api/services/poisearch/PoiSearchV2;
 	public final fun newRouteSearch ()Lcom/amap/api/services/route/RouteSearch;
+	public final fun newRouteSearchV2 ()Lcom/amap/api/services/route/RouteSearchV2;
+	public final fun newWeatherSearch ()Lcom/amap/api/services/weather/WeatherSearch;
 }
 
 public final class com/mapfusion/amap/AmapProviderFactory : com/mapfusion/api/MapProviderFactory {

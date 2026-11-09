@@ -1,0 +1,30 @@
+public final class com/mapfusion/baidu/navi/BaiduNaviNativeAccess {
+	public final fun commonSettingOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNOuterSettingManager$IBNCommonSetting;
+	public final fun mapManagerOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNMapManager;
+	public final fun naviManagerOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBaiduNaviManager;
+	public final fun professionalSettingOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNOuterSettingManager$IBNProfessionalNaviSetting;
+	public final fun routeGuideManagerOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNRouteGuideManager;
+	public final fun routePlanManagerOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNRoutePlanManager;
+	public final fun ttsManagerOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/baidu/navisdk/adapter/IBNTTSManager;
+}
+
+public final class com/mapfusion/baidu/navi/BaiduNaviSdk {
+	public static final field INSTANCE Lcom/mapfusion/baidu/navi/BaiduNaviSdk;
+	public static final fun capabilities ()Lcom/mapfusion/api/model/OfficialNavigationCapabilities;
+	public static final fun createNavigator (Landroid/app/Activity;)Lcom/mapfusion/api/model/MapResult;
+	public static final fun createNavigator (Landroid/app/Activity;Landroid/os/Bundle;)Lcom/mapfusion/api/model/MapResult;
+	public static synthetic fun createNavigator$default (Landroid/app/Activity;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+	public static final fun install ()V
+	public static final fun nativeAccess ()Lcom/mapfusion/baidu/navi/BaiduNaviNativeAccess;
+	public static final fun openMapSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun openMapSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;)Lcom/mapfusion/factory/MapFusionSession;
+	public static synthetic fun openMapSession$default (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun updatePrivacyConsent (Landroid/content/Context;Z)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/baidu/navi/BaiduOfficialNavigatorFactory : com/mapfusion/api/capability/OfficialNavigatorFactory {
+	public fun <init> ()V
+	public fun create (Landroid/app/Activity;Landroid/os/Bundle;)Lcom/mapfusion/api/model/MapResult;
+	public fun getCapabilities ()Lcom/mapfusion/api/model/OfficialNavigationCapabilities;
+}
+

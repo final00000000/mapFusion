@@ -3,6 +3,10 @@
 .kotlin/
 **/build/
 
+# Python verification tooling cache
+**/__pycache__/
+*.py[cod]
+
 # IDE and local machine state
 .idea/
 *.iml
@@ -20,8 +24,17 @@ secrets.properties
 .env
 .env.*
 
+# Ad-hoc screenshots / UI layout dumps (may contain identity and location data)
+/artifacts/
+# Public verification artifacts belong under ignored build/reports/.
+
 # Detailed local documentation (not published)
-docs/
+docs/*
+!docs/OFFICIAL_API_COVERAGE_PLAN.md
+!docs/SDK_AUTHENTICATION.md
+!docs/official-api-mappings.csv
+!docs/PROJECT_AUDIT.md
+!docs/REPOSITORY_HYGIENE.md
 
 # OS files
 .DS_Store

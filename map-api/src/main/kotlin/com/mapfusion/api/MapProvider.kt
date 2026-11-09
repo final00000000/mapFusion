@@ -82,6 +82,13 @@ interface MapProvider {
      */
     fun rawProvider(): Any?
 
+    /**
+     * 类型安全地获取厂商扩展入口。类型不匹配时返回 null，宿主不需要自行强转 [rawProvider]。
+     * 例如聚合包接入方可传入 `BaiduNativeAccess::class.java` 或 `AmapNativeAccess::class.java`。
+     */
+    fun <T : Any> rawProvider(type: Class<T>): T? =
+        rawProvider()?.takeIf(type::isInstance)?.let(type::cast)
+
     /** 释放本厂商持有的全局资源(在 App 退出或不再使用时调用) */
     fun destroy()
 }

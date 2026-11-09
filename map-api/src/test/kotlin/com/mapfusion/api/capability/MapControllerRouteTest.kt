@@ -14,8 +14,11 @@ import com.mapfusion.api.model.LatLng
 import com.mapfusion.api.model.LatLngBounds
 import com.mapfusion.api.model.MapCallback
 import com.mapfusion.api.model.MapCircle
+import com.mapfusion.api.model.MapCustomStyleFeature
+import com.mapfusion.api.model.MapCustomStyleOptions
 import com.mapfusion.api.model.MapGroundOverlay
 import com.mapfusion.api.model.MapHeatMap
+import com.mapfusion.api.model.MapLanguage
 import com.mapfusion.api.model.MapMarker
 import com.mapfusion.api.model.MapOverlay
 import com.mapfusion.api.model.MapPolygon
@@ -24,7 +27,9 @@ import com.mapfusion.api.model.MapResult
 import com.mapfusion.api.model.MapSnapshot
 import com.mapfusion.api.model.MapTextOverlay
 import com.mapfusion.api.model.MapTileOverlay
+import com.mapfusion.api.model.MapTrafficStyle
 import com.mapfusion.api.model.MapType
+import com.mapfusion.api.model.MapUiFeature
 import com.mapfusion.api.model.MapUiOptions
 import com.mapfusion.api.model.MarkerIcon
 import com.mapfusion.api.model.MarkerOptions
@@ -177,6 +182,53 @@ class MapControllerRouteTest {
 
         assertEquals(ErrorType.UNSUPPORTED, failure.error.type)
         assertEquals(MapType.NORMAL, controller.getMapType())
+    }
+
+    @Test
+    fun customControllerMustOptInToOfficialLanguageAndTrafficStyle() {
+        val controller = RecordingMapController()
+
+        assertEquals(emptySet<MapLanguage>(), controller.supportedMapLanguages())
+        val languageFailure = controller.applyMapLanguage(MapLanguage.CHINESE) as MapResult.Failure
+        assertEquals(ErrorType.UNSUPPORTED, languageFailure.error.type)
+        val trafficFailure = controller.applyTrafficStyle(
+            MapTrafficStyle(0xff00aa00.toInt(), 0xffffcc00.toInt(), 0xffff6600.toInt(), 0xffcc0000.toInt()),
+        ) as MapResult.Failure
+        assertEquals(ErrorType.UNSUPPORTED, trafficFailure.error.type)
+    }
+
+    @Test
+    fun customControllerMustOptInToOfficialCustomMapStyles() {
+        val controller = RecordingMapController()
+
+        assertEquals(emptySet<MapCustomStyleFeature>(), controller.supportedCustomStyleFeatures())
+        val failure = controller.applyCustomStyle(
+            MapCustomStyleOptions(enabled = true, styleId = "style-id"),
+        ) as MapResult.Failure
+        assertEquals(ErrorType.UNSUPPORTED, failure.error.type)
+    }
+
+    @Test
+    fun applyUiOptions_reportsUnsupportedVendorFeaturesWithoutCallingNativeSetter() {
+        val controller = RecordingMapController()
+
+        assertEquals(
+            setOf(
+                MapUiFeature.ZOOM_CONTROLS,
+                MapUiFeature.SCALE_CONTROLS,
+                MapUiFeature.COMPASS,
+                MapUiFeature.MY_LOCATION_BUTTON,
+                MapUiFeature.SCROLL_GESTURES,
+                MapUiFeature.ZOOM_GESTURES,
+                MapUiFeature.ROTATE_GESTURES,
+                MapUiFeature.TILT_GESTURES,
+            ),
+            controller.supportedUiFeatures(),
+        )
+        assertEquals(MapResult.Success(MapUiOptions()), controller.applyUiOptions(MapUiOptions()))
+
+        val failure = controller.applyUiOptions(MapUiOptions(indoorSwitchEnabled = true)) as MapResult.Failure
+        assertEquals(ErrorType.UNSUPPORTED, failure.error.type)
     }
 
     @Test

@@ -1,0 +1,25 @@
+public final class com/mapfusion/amap/navi/AmapNaviNativeAccess {
+	public final fun engineOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/amap/api/navi/AMapNavi;
+	public final fun viewOf (Lcom/mapfusion/api/capability/OfficialNavigator;)Lcom/amap/api/navi/AMapNaviView;
+}
+
+public final class com/mapfusion/amap/navi/AmapNaviSdk {
+	public static final field INSTANCE Lcom/mapfusion/amap/navi/AmapNaviSdk;
+	public static final fun capabilities ()Lcom/mapfusion/api/model/OfficialNavigationCapabilities;
+	public static final fun createNavigator (Landroid/app/Activity;)Lcom/mapfusion/api/model/MapResult;
+	public static final fun createNavigator (Landroid/app/Activity;Landroid/os/Bundle;)Lcom/mapfusion/api/model/MapResult;
+	public static synthetic fun createNavigator$default (Landroid/app/Activity;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/api/model/MapResult;
+	public static final fun install ()V
+	public static final fun nativeAccess ()Lcom/mapfusion/amap/navi/AmapNaviNativeAccess;
+	public static final fun openMapSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun openMapSession (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;)Lcom/mapfusion/factory/MapFusionSession;
+	public static synthetic fun openMapSession$default (Landroid/content/Context;Lcom/mapfusion/api/MapConfig;Landroid/os/Bundle;ILjava/lang/Object;)Lcom/mapfusion/factory/MapFusionSession;
+	public static final fun updatePrivacyConsent (Landroid/content/Context;Z)Lcom/mapfusion/api/model/MapResult;
+}
+
+public final class com/mapfusion/amap/navi/AmapOfficialNavigatorFactory : com/mapfusion/api/capability/OfficialNavigatorFactory {
+	public fun <init> ()V
+	public fun create (Landroid/app/Activity;Landroid/os/Bundle;)Lcom/mapfusion/api/model/MapResult;
+	public fun getCapabilities ()Lcom/mapfusion/api/model/OfficialNavigationCapabilities;
+}
+

@@ -76,7 +76,7 @@ internal class BaiduGeocoder(
                             MapResult.Success(
                                 GeocodeResult(
                                     location = result.location.toFusion(),
-                                    formattedAddress = result.address,
+                                    formattedAddress = result.formattedAddressCompat(address),
                                     city = city,
                                     level = result.level,
                                 ),
@@ -194,6 +194,11 @@ private fun Throwable.toGeocodeError(prefix: String): MapError = when (this) {
 
 private fun com.baidu.mapapi.model.LatLng.toFusion() = LatLng(latitude, longitude, CoordType.BD09)
 private fun LatLng.toBaidu() = toBaiduSdkLatLng()
+
+// Search 8.2.0 deprecates GeoCodeResult#getAddress without exposing a replacement.
+@Suppress("DEPRECATION")
+private fun NativeGeocodeResult.formattedAddressCompat(fallback: String): String =
+    address?.takeIf(String::isNotBlank) ?: fallback
 
 private fun PoiInfo.toFusion(): PoiItem? {
     val point = location?.toFusion()

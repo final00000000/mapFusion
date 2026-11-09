@@ -32,11 +32,11 @@ dependencies {
 
     // 版本核对日期：2026-07-17。
     // BaiduNativeAccess 的公开签名直接返回原生类型，消费者编译期必须可见这些依赖。
-    api("com.baidu.lbsyun:BaiduMapSDK_Map:8.1.0")
+    api("com.baidu.lbsyun:BaiduMapSDK_Map:8.2.0")
     api("com.baidu.lbsyun:BaiduMapSDK_Location_All:9.6.8")
-    api("com.baidu.lbsyun:BaiduMapSDK_Search:8.1.0")
+    api("com.baidu.lbsyun:BaiduMapSDK_Search:8.2.0")
     // 百度 Location 9.6.8 的国际/HTTPDNS 路径直接调用 OkHttp，但官方 POM 未传递它。
     // 作为 runtime 依赖发布，既不污染本模块公开 API，也避免 R8 将该路径裁成不可达。
     runtimeOnly("com.squareup.okhttp3:okhttp:4.12.0")
-    // 若需要百度原生导航，用 BaiduMapSDK_Map-AllNavi:8.1.0 替换 Map，勿重复引入两种地图包。
+    // 若需要百度原生导航，用 BaiduMapSDK_Map-AllNavi:8.2.0 替换 Map，勿重复引入两种地图包。
 }

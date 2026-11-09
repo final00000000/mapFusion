@@ -1,0 +1,2 @@
+# Keep executable Git hooks portable when core.autocrlf is enabled on Windows.
+.githooks/* text eol=lf

@@ -3,7 +3,10 @@
 本文件是能力范围和完成状态的唯一事实来源。README 负责接入说明，
 `MapSdk-Development-Plan.md` 只描述后续交付顺序，不复制另一套模块名或完成度。
 
-更新时间：2026-07-27。
+文档更新时间：2026-11-09；各构建、测试及设备结果以对应条目的实际日期为准。
+
+全量 API 尚未覆盖。逐签名审计工具与缺口批次见 [官方 API 覆盖计划](docs/OFFICIAL_API_COVERAGE_PLAN.md)。
+原生工厂、统一封装和真机验证分开记录，不能将“可拿到原生对象”计作全量封装完成。
 
 状态说明：`完成` 表示统一入口和当前两家真实 SDK 实现均已落地；`受限` 表示入口可用，
 但厂商支持范围或参数语义不同；`已配置` 表示工程配置存在但发布验证尚未闭环；
@@ -15,6 +18,7 @@
 | --- | --- | --- | --- | --- |
 | MapView 与生命周期 | 完成 | 完成 | 完成 | `MapFusionSession` 托管创建和幂等释放 |
 | 相机移动、动画、边界、缩放范围 | 完成 | 完成 | 完成 | 新增 `fitPoints()` 和 `LatLngBounds.fromPoints()`；View/生命周期调用要求主线程 |
+| 屏幕坐标投影与当前可视区域 | 完成 | 完成 | 完成 | `screenPointOf()`、`coordinateAt()`、`visibleRegion()`；输出明确标注 BD09 / GCJ02 |
 | 坐标边界转换 | 完成 | 完成 | 完成 | 输入按 `coordType` 转到 BD09/GCJ02，UNKNOWN 和非法数值明确拒绝 |
 | Marker | 完成 | 完成 | 完成 | 图标、标题、snippet、旋转、透明度、平贴、锚点、显隐、层级、tag、点击及移除状态 |
 | 原生海量点 | 完成 | 完成 | 完成 | 百度 `MultiPoint` / 高德 `MultiPointOverlay`；统一图标、锚点、批量替换、显隐、点击、业务 id/tag 和幂等移除，不伪造高德缺失的 zIndex |
@@ -24,10 +28,16 @@
 | GroundOverlay / Text | 完成 | 完成 | 完成 | 统一图片源、位置/边界和基础样式 |
 | TileOverlay | 受限 | 受限 | 受限 | XYZ、瓦片尺寸、bounds、min/max zoom 已统一过滤；缓存、显隐和层级仍受原生 API 差异约束 |
 | HeatMap | 完成 | 受限 | 受限 | 高德使用官方瓦片热力图实现以规避部分设备 native 崩溃 |
-| 地图截图与交互事件 | 完成 | 完成 | 完成 | 地图、Marker、海量点、覆盖物和相机事件；截图返回 PNG |
+| 地图截图与交互事件 | 完成 | 完成 | 完成 | 地图、底图 POI、Marker 点击/拖拽、地图触摸、海量点、覆盖物和相机事件；触摸回调使用不可变快照，截图返回 PNG |
+| 官方自定义地图样式 | 完成 | 完成 | 受限 | `supportedCustomStyleFeatures()` / `applyCustomStyle()`；两家支持本地样式和样式 ID，高德额外支持本地纹理；成功仅表示配置被 SDK 接受 |
+| 离线地图管理 | 不支持 | 原生扩展完成 | 受限 | 高德通过 `AmapNativeAccess.newOfflineMapManager()` 暴露官方完整下载管理器并由调用方负责销毁；百度 8.2 公共包无对应公开 API，因此不伪造统一实现 |
 | 地图类型 | 完成 | 完成 | 完成 | 百度 NORMAL/SATELLITE/NONE；高德 NORMAL/SATELLITE/NIGHT/NAVIGATION；不支持项明确返回 `UNSUPPORTED` |
-| UI 与手势设置 | 受限 | 完成 | 受限 | 百度无法等价表达高德的定位按钮等全部选项，尚无逐项能力查询 |
+| UI 与手势设置 | 受限 | 完成 | 受限 | 已提供 `supportedUiFeatures()` / `applyUiOptions()`；两家统一基础控件和手势，高德额外支持室内开关及缩放中心，百度额外支持双击/双指缩放、甩动和惯性；百度定位按钮仍明确标为不支持 |
 | 交通、建筑、室内、底图 POI | 受限 | 完成 | 受限 | 统一开关已实现，最终效果以厂商、城市和底图数据为准 |
+| 室内建筑与楼层控制 | 已实现待真机 | 已实现待真机 | 受限 | 新增 `activeIndoorBuilding()`、`switchIndoorFloor()`、室内事件和支持查询；使用厂商楼层 ID，成功只表示切层请求接受；实际建筑数据和切层未验收 |
+| 官方底图语言 | 完成 | 完成 | 完成 | 两家统一支持中文/英文；高德额外声明跟随系统，调用前可查询支持集合 |
+| 官方路况配色 | 完成 | 完成 | 受限 | 统一四级颜色；高德额外的极度畅通级映射为畅通色 |
+| 官方审图号与版权信息 | 完成 | 完成 | 完成 | 统一 `MapLegalInfo`，无对应数据的厂商字段返回 null |
 
 ## 服务能力
 
@@ -43,7 +53,7 @@
 | 电动自行车路线 | 完成 | 不支持 | 受限 | 高德明确返回 `UNSUPPORTED`，不得静默降级 |
 | 公交路线 | 完成 | 完成 | 受限 | 必须提供城市，跨城和详情能力依厂商而异 |
 | App 内轻量路线引导 | 完成 | 完成 | 受限 | `REAL` 由设备连续定位推进，`SIMULATED` 沿统一规划路线推进；支持跟随、步骤/进度、到达和偏航重算，不含官方导航资源 |
-| 厂商完整原生导航 SDK | 计划 | 计划 | 计划 | 官方车道级引导、语音、路口放大图、电子眼等必须作为可选 Navi 模块接入 |
+| 厂商完整原生导航 SDK | 受限 | 受限 | 受限 | `map-baidu-navi` / `map-amap-navi` 已映射真实/模拟、官方 UI、路线选择、详细进度、分段路况、服务区、途经点进度、高速出口/方向/收费站、路线提醒、语音、车道线、路口图、电子眼、限速及偏航重算完成；高德另提供 GPS/弱信号、区间测速和剩余红绿灯事件。百度真机页面可启动但路线规划仍受控制台 SHA1/包名鉴权限制，前台服务和双厂商长稳未验收 |
 | 外部厂商页面导航 | 完成 | 完成 | 受限 | 兼容旧业务的 URI 入口；成功只表示 Intent 被系统接受 |
 | 行政区与边界 | 受限 | 完成 | 受限 | 百度行政层级信息尚未完全归一 |
 | 实时天气与预报 | 完成 | 完成 | 受限 | 高德查询需要 city/adCode，不接受纯坐标请求 |
@@ -55,6 +65,16 @@
 已经接入厂商完整导航 SDK；不得把当前实现宣传为车道级 turn-by-turn 商用导航，也不得暗示
 已具备官方语音、车道线、路口放大图、电子眼或限速数据。
 
+`OfficialNavigator` 则由可选 Navi 模块直接驱动厂商官方引擎。百度模块当前只声明驾车；高德模块
+声明驾车、步行、自行车和电动自行车。两家均支持官方真实/模拟模式；只有高德声明可设置模拟速度。
+两家均声明途经点到达/剩余进度、服务区、高速出口/方向/收费站、厂商路线提醒和重算完成事件；
+GPS 状态、区间测速与剩余红绿灯详细事件只由当前高德组合包声明。
+两家均声明主动重算、路线全览/恢复跟随、语音控制和昼夜模式；只有高德声明导航运行中的模拟速度
+调整。未统一的厂商管理器通过对应 Navi 模块的 `nativeAccess()` 访问，仍绑定当前导航会话。
+两家会话均通过 `lastError` 保留最近一次进入 `FAILED` 的错误，初始化失败即使早于 `start()`
+监听器注册也可读取；包含厂商原始错误码和消息，不需要先发起路线请求才能诊断鉴权问题。
+`BACKGROUND_GUIDANCE` 在宿主完成前台服务与合规闭环前不会出现在能力集合中。
+
 ## SDK 与示例工程
 
 | 项目 | 状态 | 说明 |
@@ -62,30 +82,42 @@
 | 单厂商组合 | 完成 | `map-factory + map-baidu` 或 `map-factory + map-amap`，宿主显式注册 Factory |
 | 双厂商聚合包 | 完成 | `map-fusion-full` 自动注册两家，提供 `create/openSession/updatePrivacyConsent` |
 | Demo 公共能力边界 | 完成 | 路线绘制、视野适配、定制定位展示、原生海量点、搜索、导航、轨迹等调用公开 SDK API；权限和隐私 UI 保持宿主职责 |
+| Demo 首页工具面板 | 完成 | 地图保持主视图；公开能力按常用、导航、查询服务、覆盖物和轨迹五类切换，分类与布局状态不进入 SDK |
+| Demo 动态工具高度 | 完成 | 常用/轨迹一行、查询两行、覆盖物三行；结果条按内容测量，释放的空间自动归还地图 |
+| 厂商原生能力入口 | 完成 | `NativeAccess` 可获取官方地图/View，并统一代建常用行政区、天气、输入提示、公交线路和 V2 路线等原生对象；高德额外提供官方离线地图管理器工厂 |
+| 新增原生检索工厂 | 已实现待真机 | 高德 POI V2/公交站点/距离查询，百度建筑/推荐上车点/分享链接；只代建原生对象，尚未统一其请求响应，也未逐请求真机验收 |
+| 安装包身份诊断 | 已实现待真机 | `MapSdkIdentity.read()` 返回实际 package、SHA1、百度 MCODE；默认 Demo 不再加 applicationId 后缀，并排模式为显式选项 |
+| 官方 Navi 可选模块 | 受限 | 单模块一步注册、隐私同步、地图会话和官方导航会话；百度 Map-AllNavi 8.1.0 与 base/bwnavi 8.1.0、carnavi 8.0.1 对齐，Search 8.2.0 排除 base 8.2 以保持 native ABI，Navi minSdk 23，并移除非核心高敏权限的自动合并 |
+| 官方 Navi Demo | 受限 | `amapNavi` / `baiduNavi` 独立变体通过统一 API 承载厂商 View；支持真实/模拟、能力驱动的出行方式、模拟速度、路线切换、暂停/继续/停止、主动重算、路线全览、恢复跟随、语音和昼夜控制，并展示途经点、高速引导、路线提醒、服务区及路况事件。高德待开始时隐藏空路线指引，导航/暂停时恢复官方布局；初始化轮询通过 `lastError` 展示错误。2026-11-06 真机复验：高德地图无遮挡、模拟速度行可动态显示，路线请求失败；百度启动即显示 status=230 / APP Mcode码校验失败。两家实际路线与导航中的布局切换仍未验收 |
+| Navi 原生库隔离 | 完成 | 两家 `libc++_shared.so` 不在同一 APK 中做不安全覆盖；`maps`、`amapNavi`、`baiduNavi` 三变体分别打包 |
 | 隐私同意/撤回 | 完成 | 默认不同意；撤回时先取消请求和销毁 Session，再通过 Factory SPI 同步 false |
 | 请求托管 | 完成 | `RequestScope` 支持同 key 替换、单 key/全部取消和关闭 |
 | `MapConfig.extras` | 预留 | 当前两家适配器未消费稳定 key；1.0 前需决定类型化扩展契约或继续仅作保留字段 |
+| Demo MVVM / 页面拆分 | 未完成 | 当前仍由两个大型 Activity 管理视图、请求和状态；问题定位与分阶段验收见 [项目梳理报告](docs/PROJECT_AUDIT.md)，不把工具面板分类视为已完成 MVVM |
 
 ## 工程化门槛
 
 | 项目 | 状态 | 交付要求或当前结果 |
 | --- | --- | --- |
-| JVM 单测 | 已通过 | 2026-07-27 最新报告：五模块 125/125，0 failure、0 error；覆盖定位展示、原生海量点，以及真实/模拟轻量导航推进与竞态 |
-| 真机 androidTest | 已通过当前套件 | OnePlus 9 Pro 上 10/10：双厂商地图生命周期、WGS84 Marker、原生海量点与批量替换、真实定位、步行路线与几何数据；release SHA1、minify、前后台和长稳仍待验收 |
+| JVM 单测 | 已通过 | 2026-11-06 本轮七模块 Debug 门禁通过，报告 144/144，0 failure/error/skipped；2026-11-05 Debug/Release 各 144/144 属历史记录，本轮未复跑 Release |
+| 真机 androidTest | 历史当前套件已通过，本轮仅编译 | 历史 OnePlus 9 Pro 基础套件 10/10，覆盖双厂商地图生命周期、WGS84 Marker、海量点、定位和步行路线；2026-11-06 本轮修复 UIAutomator/minSdk 冲突后 maps androidTest 编译通过，未执行 connected；官方 Navi 鉴权、前后台与长稳待验收 |
 | 异步取消/超时/线程 | 完成 | `RequestHandle`、单请求取消、超时、默认主线程、自定义 Executor；导航/轨迹事件串行，见 `ASYNC_CONTRACT.md` |
-| Release/R8 构建 | 已通过 | `assembleRelease` 生成五个 Release AAR 和 unsigned Demo APK；已定向抑制厂商可选缺类，仍有厂商 jar stack-map 警告 |
-| Release Maven 配置 | 已通过独立消费验证 | 五模块均已发布 AAR、sources、POM、Gradle metadata；独立工程已验证聚合包、传递依赖和 sources JAR |
+| Release/R8 构建 | 已通过（两家 Navi） | `app-amapNavi-release-unsigned.apk` 与 `app-baiduNavi-release-unsigned.apk` 均已生成，缺失类清单为空；Baidu 仍只有厂商 AAR 的 stack-map 警告，Amap Navi 无 Lint 问题 |
+| Release Maven 配置 | 部分完成 | 原五模块已通过独立消费验证；两个 Navi 模块已纳入统一发布配置但本阶段按要求未执行 Maven 发布/消费验证 |
 | POM 元数据门禁 | 已配置 | `mapFusionRequirePublicationMetadata=true` 会强制校验；真实 group/license/developer/SCM/签名身份待项目方提供 |
 | Consumer R8 | 已通过构建、运行受限 | 独立消费者不补应用规则仍完成 Release/R8；厂商命名空间仍保守 keep，需用 minify 真机结果和官方规则收紧 |
-| ABI 兼容检查 | 已通过初始基线 | BCV 覆盖五个发布模块；本轮 `apiDump` 与独立 `apiCheck` 成功，后续 API 变更必须继续审查 |
-| Lint | 已通过但有警告 | 六模块 Lint 均 BUILD SUCCESSFUL；最新 XML 合计 0 error / 11 warning，均为依赖/工具版本提示或 KTX 建议 |
-| 版本库与 CI | 未配置 | 当前目录不是 Git 仓库；正式交付前必须建立版本历史、受保护分支和自动校验 |
+| ABI 兼容检查 | 已通过 | 2026-11-06 本轮七个发布模块 apiCheck 全部成功；未执行 apiDump，未改 ABI 基线 |
+| Lint | 已通过但有警告 | 2026-11-06 删除未使用 result_message 后，maps/amapNavi/baiduNavi Debug 各 0 error / 9 warning：依赖提示 1、SetTextI18n 8；尚未清零警告 |
+| 版本库与 CI | 部分完成 | 已有 Git 版本历史；仍需受保护分支和自动校验工作流 |
 | Maven Central 发布 | 未完成 | 脚本支持元数据与签名，但真实身份信息、签名密钥、Central 账户和发布验证均未闭环 |
+| 提交前敏感检查 | 本地已启用 | 工作区与整个暂存区扫描通过；20 项工具回归通过，包含真实临时仓库 hook 拦截；不自动暂存/提交，不替代 CI 和历史安全审计 |
+
+本轮梳理、清理范围、复验结果和未执行项见 [项目梳理报告](docs/PROJECT_AUDIT.md)。Release/R8、发布消费与真机记录仍为对应历史结果，本轮未复验。
 
 ## 当前结论
 
 当前版本已经是功能完整的双厂商原型，并具备可供宿主集成验证的公开 API，但仍是
 `0.9.0-SNAPSHOT`，不是可直接宣称生产稳定或 Maven Central 可发布的成品。以下门槛完成前
-不得发布 `1.0.0`：共享 Provider 契约继续补齐、双厂商真机长稳与 minify Release 验证、
-独立消费者回归已闭环；仍需 Git/CI/CHANGELOG、正式 POM 身份与签名，以及用户
-要求的厂商完整原生导航可选模块。
+不得发布 `1.0.0`：共享 Provider 契约继续补齐、双厂商真机长稳与 minify Release 路线验证、
+独立消费者回归已闭环；仍需 Git/CI/CHANGELOG、正式 POM 身份与签名。官方 Navi 的代码、
+依赖替换、独立 Demo 页面与 Debug/Release R8 构建已经落地，但正式授权、宿主前台服务及双厂商真机长稳仍需闭环。

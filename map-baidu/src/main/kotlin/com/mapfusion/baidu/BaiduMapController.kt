@@ -6,7 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Point
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import com.baidu.mapapi.map.BaiduMap
 import com.baidu.mapapi.map.BitmapDescriptor
@@ -16,6 +18,8 @@ import com.baidu.mapapi.map.FileTileProvider
 import com.baidu.mapapi.map.GroundOverlay
 import com.baidu.mapapi.map.HeatMap
 import com.baidu.mapapi.map.MapPoi
+import com.baidu.mapapi.map.MapLanguage as BaiduMapLanguage
+import com.baidu.mapapi.map.MapCustomStyleOptions as BaiduCustomMapStyleOptions
 import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
 import com.baidu.mapapi.map.MapView
@@ -45,28 +49,44 @@ import com.mapfusion.api.model.LatLng
 import com.mapfusion.api.model.LatLngBounds
 import com.mapfusion.api.model.MapCallback
 import com.mapfusion.api.model.MapCircle
+import com.mapfusion.api.model.MapCustomStyleFeature
+import com.mapfusion.api.model.MapCustomStyleOptions
 import com.mapfusion.api.model.MapError
 import com.mapfusion.api.model.MapGroundOverlay
 import com.mapfusion.api.model.MapHeatMap
 import com.mapfusion.api.model.MapImage
+import com.mapfusion.api.model.MapLanguage
+import com.mapfusion.api.model.MapLegalInfo
+import com.mapfusion.api.model.MapIndoorBuilding
+import com.mapfusion.api.model.MapIndoorFloor
+import com.baidu.mapapi.map.MapBaseIndoorMapInfo
 import com.mapfusion.api.model.MapMarker
 import com.mapfusion.api.model.MapMultiPointOverlay
 import com.mapfusion.api.model.MapOverlay
+import com.mapfusion.api.model.MapPoiClick
 import com.mapfusion.api.model.MapPolygon
 import com.mapfusion.api.model.MapPolyline
 import com.mapfusion.api.model.MapResult
 import com.mapfusion.api.model.MapSnapshot
 import com.mapfusion.api.model.MapTextOverlay
 import com.mapfusion.api.model.MapTileOverlay
+import com.mapfusion.api.model.MapTrafficStyle
+import com.mapfusion.api.model.MapTouchAction
+import com.mapfusion.api.model.MapTouchEvent
 import com.mapfusion.api.model.MapType
+import com.mapfusion.api.model.MapUiFeature
 import com.mapfusion.api.model.MapUiOptions
+import com.mapfusion.api.model.MapVisibleRegion
 import com.mapfusion.api.model.MarkerIcon
+import com.mapfusion.api.model.MarkerDragEvent
+import com.mapfusion.api.model.MarkerDragPhase
 import com.mapfusion.api.model.MarkerOptions
 import com.mapfusion.api.model.MultiPointItem
 import com.mapfusion.api.model.MultiPointOverlayOptions
 import com.mapfusion.api.model.PolygonOptions
 import com.mapfusion.api.model.PolylineOptions
 import com.mapfusion.api.model.RequestHandle
+import com.mapfusion.api.model.ScreenPoint
 import com.mapfusion.api.model.TextHorizontalAlignment
 import com.mapfusion.api.model.TextOverlayOptions
 import com.mapfusion.api.model.TextVerticalAlignment
@@ -88,7 +108,10 @@ internal class BaiduMapController(
     private val tileOverlays = mutableSetOf<MapTileOverlay>()
     private val heatMaps = mutableSetOf<MapHeatMap>()
     private val snapshotRequests = NativeRequestRegistry<Any> { }
+    private var mapClickListener: ((LatLng) -> Unit)? = null
+    private var mapPoiClickListener: ((MapPoiClick) -> Unit)? = null
     private var destroyed = false
+    private var indoorListener: ((MapIndoorBuilding?) -> Unit)? = null
 
     override val view: View = mapView
 
@@ -98,6 +121,9 @@ internal class BaiduMapController(
     override fun onCreate(savedState: Bundle?) {
         // 百度 MapView 在构造时已创建；有状态时恢复 SDK 保存的数据。
         if (savedState != null) mapView.onCreate(mapView.context, savedState)
+        map.setOnBaseIndoorMapListener { indoor, info ->
+            if (!destroyed) indoorListener?.invoke(if (indoor) info?.toIndoorBuilding() else null)
+        }
     }
 
     override fun onResume() = mapView.onResume()
@@ -105,11 +131,16 @@ internal class BaiduMapController(
     override fun onDestroy() {
         if (destroyed) return
         destroyed = true
+        indoorListener = null
         try {
+            runCatching { map.setOnBaseIndoorMapListener(null) }
             snapshotRequests.destroy()
             runCatching { setOnMapClickListener(null) }
+            runCatching { setOnMapPoiClickListener(null) }
             runCatching { setOnMapLongClickListener(null) }
             runCatching { setOnMarkerClickListener(null) }
+            runCatching { setOnMarkerDragListener(null) }
+            runCatching { setOnMapTouchListener(null) }
             runCatching { setOnMultiPointClickListener(null) }
             runCatching { setOnOverlayClickListener(null) }
             runCatching { setOnCameraIdleListener(null) }
@@ -126,6 +157,8 @@ internal class BaiduMapController(
             multiPointOverlays.clear()
             tileOverlays.clear()
             heatMaps.clear()
+            mapClickListener = null
+            mapPoiClickListener = null
         }
     }
     override fun onSaveInstanceState(outState: Bundle) = mapView.onSaveInstanceState(outState)
@@ -172,6 +205,31 @@ internal class BaiduMapController(
     override fun setZoomRange(minZoom: Float, maxZoom: Float) {
         require(minZoom <= maxZoom) { "minZoom 不能大于 maxZoom" }
         map.setMaxAndMinZoomLevel(maxZoom, minZoom)
+    }
+
+    override fun screenPointOf(location: LatLng): ScreenPoint? = runCatching {
+        map.projection.toScreenLocation(location.toBaidu())?.let { ScreenPoint(it.x, it.y) }
+    }.getOrNull()
+
+    override fun coordinateAt(point: ScreenPoint): LatLng? = runCatching {
+        map.projection.fromScreenLocation(Point(point.x, point.y))?.toFusion(CoordType.BD09)
+    }.getOrNull()
+
+    override fun visibleRegion(): MapVisibleRegion? {
+        if (mapView.width <= 0 || mapView.height <= 0) return null
+        return runCatching {
+            val projection = map.projection
+            fun coordinate(x: Int, y: Int): LatLng =
+                requireNotNull(projection.fromScreenLocation(Point(x, y))) {
+                    "百度地图尚未返回可视区域坐标"
+                }.toFusion(CoordType.BD09)
+            MapVisibleRegion(
+                nearLeft = coordinate(0, mapView.height),
+                nearRight = coordinate(mapView.width, mapView.height),
+                farLeft = coordinate(0, 0),
+                farRight = coordinate(mapView.width, 0),
+            )
+        }.getOrNull()
     }
 
     override fun addMarker(options: MarkerOptions): MapMarker {
@@ -372,7 +430,109 @@ internal class BaiduMapController(
     override fun setZoomControlsEnabled(enabled: Boolean) = mapView.showZoomControls(enabled)
     override fun setBuildingsEnabled(enabled: Boolean) = map.setBuildingsEnabled(enabled)
     override fun setIndoorEnabled(enabled: Boolean) = map.setIndoorEnable(enabled)
+    override fun supportsIndoorFloorControl(): Boolean = true
+    override fun activeIndoorBuilding(): MapIndoorBuilding? =
+        if (destroyed || !map.isBaseIndoorMapMode) null else map.focusedBaseIndoorMapInfo?.toIndoorBuilding()
+
+    override fun setOnIndoorBuildingListener(listener: ((MapIndoorBuilding?) -> Unit)?) {
+        check(!destroyed || listener == null) { "地图已销毁" }
+        indoorListener = listener
+    }
+
+    override fun switchIndoorFloor(buildingId: String, floorId: String): MapResult<Unit> {
+        val current = activeIndoorBuilding()
+        if (current == null || current.id != buildingId || current.floors.none { it.id == floorId }) {
+            return MapResult.Failure(MapError(ErrorType.INVALID_PARAM, "当前室内建筑或楼层已不可用，请重新读取室内信息"))
+        }
+        return try {
+            val status = map.switchBaseIndoorMapFloor(floorId, buildingId)
+            if (status == MapBaseIndoorMapInfo.SwitchFloorError.SWITCH_OK) MapResult.Success(Unit)
+            else MapResult.Failure(MapError(ErrorType.UNKNOWN, "百度室内切层失败：$status", rawMessage = status?.name))
+        } catch (error: Exception) {
+            MapResult.Failure(MapError(ErrorType.UNKNOWN, "百度室内切层失败：${error.message}", cause = error))
+        }
+    }
+
+    private fun MapBaseIndoorMapInfo.toIndoorBuilding(): MapIndoorBuilding? =
+        id?.takeIf { it.isNotBlank() }?.let { buildingId ->
+            MapIndoorBuilding(buildingId, floors.orEmpty().map { MapIndoorFloor(it, it) }, curFloor)
+        }
     override fun setMapPoiEnabled(enabled: Boolean) = map.showMapPoi(enabled)
+
+    override fun supportedMapLanguages(): Set<MapLanguage> = BAIDU_SUPPORTED_MAP_LANGUAGES
+
+    override fun applyMapLanguage(language: MapLanguage): MapResult<MapLanguage> {
+        if (language !in BAIDU_SUPPORTED_MAP_LANGUAGES) {
+            return MapResult.Failure(
+                MapError(ErrorType.UNSUPPORTED, "百度地图不支持底图语言 $language"),
+            )
+        }
+        return runCatching {
+            map.setMapLanguage(
+                when (language) {
+                    MapLanguage.CHINESE -> BaiduMapLanguage.CHINESE
+                    MapLanguage.ENGLISH -> BaiduMapLanguage.ENGLISH
+                    MapLanguage.LOCAL -> error("已在支持范围检查中排除")
+                },
+            )
+            MapResult.Success(language)
+        }.getOrElse { error ->
+            MapResult.Failure(
+                MapError(ErrorType.UNKNOWN, "百度底图语言应用失败：${error.message.orEmpty()}", cause = error),
+            )
+        }
+    }
+
+    override fun applyTrafficStyle(style: MapTrafficStyle): MapResult<Unit> = runCatching {
+        map.setCustomTrafficColor(
+            style.smoothColor,
+            style.slowColor,
+            style.congestedColor,
+            style.seriouslyCongestedColor,
+        )
+        map.setCustomTrafficColorEnable(true)
+        MapResult.Success(Unit)
+    }.getOrElse { error ->
+        MapResult.Failure(
+            MapError(ErrorType.UNKNOWN, "百度路况配色应用失败：${error.message.orEmpty()}", cause = error),
+        )
+    }
+
+    override fun legalInfo(): MapLegalInfo? = runCatching {
+        MapLegalInfo(
+            mapContentApprovalNumber = map.mapApprovalNumber.nonBlankOrNull(),
+            englishMapApprovalNumber = map.englishMapApprovalNumber.nonBlankOrNull(),
+            copyright = map.mapCopyrightInfo.nonBlankOrNull(),
+            mappingQualification = map.mapMappingQualificationInfo.nonBlankOrNull(),
+        )
+    }.getOrNull()
+
+    override fun supportedCustomStyleFeatures(): Set<MapCustomStyleFeature> =
+        BAIDU_SUPPORTED_CUSTOM_STYLE_FEATURES
+
+    override fun applyCustomStyle(options: MapCustomStyleOptions): MapResult<Unit> {
+        val unsupported = options.requestedCustomStyleFeatures() - supportedCustomStyleFeatures()
+        if (unsupported.isNotEmpty()) {
+            return MapResult.Failure(
+                MapError(ErrorType.UNSUPPORTED, "百度地图不支持自定义样式来源：${unsupported.joinToString()}"),
+            )
+        }
+        return runCatching {
+            if (options.enabled) {
+                val nativeOptions = BaiduCustomMapStyleOptions().apply {
+                    options.localStylePath?.let(::localCustomStylePath)
+                    options.styleId?.let(::customStyleId)
+                }
+                mapView.setMapCustomStyle(nativeOptions, null)
+            }
+            mapView.setMapCustomStyleEnable(options.enabled)
+            MapResult.Success(Unit)
+        }.getOrElse { error ->
+            MapResult.Failure(
+                MapError(ErrorType.UNKNOWN, "百度自定义地图样式提交失败：${error.message.orEmpty()}", cause = error),
+            )
+        }
+    }
 
     override fun supportedMapTypes(): Set<MapType> = BAIDU_SUPPORTED_MAP_TYPES
 
@@ -393,6 +553,8 @@ internal class BaiduMapController(
         else -> MapType.NORMAL
     }
 
+    override fun supportedUiFeatures(): Set<MapUiFeature> = BAIDU_SUPPORTED_UI_FEATURES
+
     override fun setUiOptions(options: MapUiOptions) {
         mapView.showZoomControls(options.zoomControlsEnabled)
         mapView.showScaleControl(options.scaleControlsEnabled)
@@ -402,6 +564,11 @@ internal class BaiduMapController(
             isZoomGesturesEnabled = options.zoomGesturesEnabled
             isRotateGesturesEnabled = options.rotateGesturesEnabled
             isOverlookingGesturesEnabled = options.tiltGesturesEnabled
+            setDoubleClickZoomEnabled(options.doubleClickZoomEnabled)
+            setTwoTouchClickZoomEnabled(options.twoTouchClickZoomEnabled)
+            setDoubleClickMoveZoomEnable(options.doubleClickMoveZoomEnabled)
+            setFlingEnable(options.flingEnabled)
+            setInertialAnimation(options.inertialAnimationEnabled)
         }
     }
 
@@ -447,15 +614,13 @@ internal class BaiduMapController(
     }
 
     override fun setOnMapClickListener(listener: ((LatLng) -> Unit)?) {
-        map.setOnMapClickListener(listener?.let { callback ->
-            object : BaiduMap.OnMapClickListener {
-                override fun onMapClick(point: com.baidu.mapapi.model.LatLng) {
-                    callback(point.toFusion(CoordType.BD09))
-                }
+        mapClickListener = listener
+        updateMapClickDispatcher()
+    }
 
-                override fun onMapPoiClick(poi: MapPoi) = Unit
-            }
-        })
+    override fun setOnMapPoiClickListener(listener: ((MapPoiClick) -> Unit)?) {
+        mapPoiClickListener = listener
+        updateMapClickDispatcher()
     }
 
     override fun setOnMapLongClickListener(listener: ((LatLng) -> Unit)?) {
@@ -469,6 +634,27 @@ internal class BaiduMapController(
             BaiduMap.OnMarkerClickListener { marker ->
                 (overlays[marker] as? MapMarker)?.let(callback) ?: false
             }
+        })
+    }
+
+    override fun setOnMarkerDragListener(listener: ((MarkerDragEvent) -> Unit)?) {
+        map.setOnMarkerDragListener(listener?.let { callback ->
+            object : BaiduMap.OnMarkerDragListener {
+                override fun onMarkerDragStart(marker: Marker) = deliver(marker, MarkerDragPhase.STARTED)
+                override fun onMarkerDrag(marker: Marker) = deliver(marker, MarkerDragPhase.DRAGGING)
+                override fun onMarkerDragEnd(marker: Marker) = deliver(marker, MarkerDragPhase.ENDED)
+
+                private fun deliver(marker: Marker, phase: MarkerDragPhase) {
+                    val fusionMarker = overlays[marker] as? MapMarker ?: return
+                    callback(MarkerDragEvent(fusionMarker, phase, marker.position.toFusion(CoordType.BD09)))
+                }
+            }
+        })
+    }
+
+    override fun setOnMapTouchListener(listener: ((MapTouchEvent) -> Unit)?) {
+        map.setOnMapTouchListener(listener?.let { callback ->
+            BaiduMap.OnMapTouchListener { event -> callback(event.toFusionTouchEvent()) }
         })
     }
 
@@ -529,6 +715,33 @@ internal class BaiduMapController(
         map.setOnMapLoadedCallback(listener?.let { callback ->
             BaiduMap.OnMapLoadedCallback { callback() }
         })
+    }
+
+    private fun updateMapClickDispatcher() {
+        val mapCallback = mapClickListener
+        val poiCallback = mapPoiClickListener
+        if (mapCallback == null && poiCallback == null) {
+            map.setOnMapClickListener(null)
+            return
+        }
+        map.setOnMapClickListener(
+            object : BaiduMap.OnMapClickListener {
+                override fun onMapClick(point: com.baidu.mapapi.model.LatLng) {
+                    mapCallback?.invoke(point.toFusion(CoordType.BD09))
+                }
+
+                override fun onMapPoiClick(poi: MapPoi) {
+                    val position = poi.position ?: return
+                    poiCallback?.invoke(
+                        MapPoiClick(
+                            id = poi.uid.nonBlankOrNull(),
+                            name = poi.name.nonBlankOrNull(),
+                            position = position.toFusion(CoordType.BD09),
+                        ),
+                    )
+                }
+            },
+        )
     }
 
     private fun MarkerIcon.toBaiduDescriptor(): BitmapDescriptor = when (this) {
@@ -893,3 +1106,52 @@ internal val BAIDU_SUPPORTED_MAP_TYPES: Set<MapType> = setOf(
     MapType.SATELLITE,
     MapType.NONE,
 )
+
+internal val BAIDU_SUPPORTED_MAP_LANGUAGES: Set<MapLanguage> = setOf(
+    MapLanguage.CHINESE,
+    MapLanguage.ENGLISH,
+)
+
+internal val BAIDU_SUPPORTED_UI_FEATURES: Set<MapUiFeature> = setOf(
+    MapUiFeature.ZOOM_CONTROLS,
+    MapUiFeature.SCALE_CONTROLS,
+    MapUiFeature.COMPASS,
+    MapUiFeature.SCROLL_GESTURES,
+    MapUiFeature.ZOOM_GESTURES,
+    MapUiFeature.ROTATE_GESTURES,
+    MapUiFeature.TILT_GESTURES,
+    MapUiFeature.DOUBLE_CLICK_ZOOM,
+    MapUiFeature.TWO_TOUCH_CLICK_ZOOM,
+    MapUiFeature.DOUBLE_CLICK_MOVE_ZOOM,
+    MapUiFeature.FLING,
+    MapUiFeature.INERTIAL_ANIMATION,
+)
+
+internal val BAIDU_SUPPORTED_CUSTOM_STYLE_FEATURES: Set<MapCustomStyleFeature> = setOf(
+    MapCustomStyleFeature.LOCAL_STYLE_FILE,
+    MapCustomStyleFeature.STYLE_ID,
+)
+
+private fun MapCustomStyleOptions.requestedCustomStyleFeatures(): Set<MapCustomStyleFeature> = buildSet {
+    if (!enabled) return@buildSet
+    if (localStylePath != null) add(MapCustomStyleFeature.LOCAL_STYLE_FILE)
+    if (styleId != null) add(MapCustomStyleFeature.STYLE_ID)
+    if (localTexturePath != null) add(MapCustomStyleFeature.LOCAL_TEXTURE_FILE)
+}
+
+private fun MotionEvent.toFusionTouchEvent() = MapTouchEvent(
+    action = when (actionMasked) {
+        MotionEvent.ACTION_DOWN -> MapTouchAction.DOWN
+        MotionEvent.ACTION_UP -> MapTouchAction.UP
+        MotionEvent.ACTION_MOVE -> MapTouchAction.MOVE
+        MotionEvent.ACTION_CANCEL -> MapTouchAction.CANCEL
+        MotionEvent.ACTION_POINTER_DOWN -> MapTouchAction.POINTER_DOWN
+        MotionEvent.ACTION_POINTER_UP -> MapTouchAction.POINTER_UP
+        else -> MapTouchAction.OTHER
+    },
+    x = x,
+    y = y,
+    pointerCount = pointerCount,
+)
+
+private fun String?.nonBlankOrNull(): String? = this?.takeIf(String::isNotBlank)

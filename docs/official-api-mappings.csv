@@ -1,0 +1,12 @@
+owner,member,descriptor,status,entrypoint,demo,verification
+com.amap.api.maps.AMap,setIndoorBuildingInfo,(Lcom/amap/api/maps/model/IndoorBuildingInfo;)V,UNIFIED,MapController.switchIndoorFloor,地图设置/室内楼层,NOT_VERIFIED_ON_DEVICE
+com.amap.api.maps.AMap,setOnIndoorBuildingActiveListener,(Lcom/amap/api/maps/AMap$OnIndoorBuildingActiveListener;)V,UNIFIED,MapController.setOnIndoorBuildingListener,地图设置/室内楼层,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.map.BaiduMap,switchBaseIndoorMapFloor,(Ljava/lang/String;Ljava/lang/String;)Lcom/baidu/mapapi/map/MapBaseIndoorMapInfo$SwitchFloorError;,UNIFIED,MapController.switchIndoorFloor,地图设置/室内楼层,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.map.BaiduMap,getFocusedBaseIndoorMapInfo,()Lcom/baidu/mapapi/map/MapBaseIndoorMapInfo;,UNIFIED,MapController.activeIndoorBuilding,地图设置/室内楼层,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.map.BaiduMap,setOnBaseIndoorMapListener,(Lcom/baidu/mapapi/map/BaiduMap$OnBaseIndoorMapListener;)V,UNIFIED,MapController.setOnIndoorBuildingListener,地图设置/室内楼层,NOT_VERIFIED_ON_DEVICE
+com.amap.api.services.poisearch.PoiSearchV2,<init>,(Landroid/content/Context;Lcom/amap/api/services/poisearch/PoiSearchV2$Query;)V,NATIVE_FACTORY,AmapNativeAccess.newPoiSearchV2,NONE,NOT_VERIFIED_ON_DEVICE
+com.amap.api.services.busline.BusStationSearch,<init>,(Landroid/content/Context;Lcom/amap/api/services/busline/BusStationQuery;)V,NATIVE_FACTORY,AmapNativeAccess.newBusStationSearch,NONE,NOT_VERIFIED_ON_DEVICE
+com.amap.api.services.route.DistanceSearch,<init>,(Landroid/content/Context;)V,NATIVE_FACTORY,AmapNativeAccess.newDistanceSearch,NONE,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.search.building.BuildingSearch,newInstance,()Lcom/baidu/mapapi/search/building/BuildingSearch;,NATIVE_FACTORY,BaiduNativeAccess.newBuildingSearch,NONE,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.search.recommendstop.RecommendStopSearch,newInstance,()Lcom/baidu/mapapi/search/recommendstop/RecommendStopSearch;,NATIVE_FACTORY,BaiduNativeAccess.newRecommendStopSearch,NONE,NOT_VERIFIED_ON_DEVICE
+com.baidu.mapapi.search.share.ShareUrlSearch,newInstance,()Lcom/baidu/mapapi/search/share/ShareUrlSearch;,NATIVE_FACTORY,BaiduNativeAccess.newShareUrlSearch,NONE,NOT_VERIFIED_ON_DEVICE

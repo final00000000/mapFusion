@@ -1,9 +1,16 @@
 public final class com/mapfusion/baidu/BaiduNativeAccess {
 	public final fun mapOf (Lcom/mapfusion/api/capability/MapController;)Lcom/baidu/mapapi/map/BaiduMap;
 	public final fun mapViewOf (Lcom/mapfusion/api/capability/MapController;)Lcom/baidu/mapapi/map/MapView;
+	public final fun newBuildingSearch ()Lcom/baidu/mapapi/search/building/BuildingSearch;
+	public final fun newBusLineSearch ()Lcom/baidu/mapapi/search/busline/BusLineSearch;
+	public final fun newDistrictSearch ()Lcom/baidu/mapapi/search/district/DistrictSearch;
 	public final fun newGeocoder ()Lcom/baidu/mapapi/search/geocode/GeoCoder;
 	public final fun newPoiSearch ()Lcom/baidu/mapapi/search/poi/PoiSearch;
+	public final fun newRecommendStopSearch ()Lcom/baidu/mapapi/search/recommendstop/RecommendStopSearch;
 	public final fun newRoutePlanSearch ()Lcom/baidu/mapapi/search/route/RoutePlanSearch;
+	public final fun newShareUrlSearch ()Lcom/baidu/mapapi/search/share/ShareUrlSearch;
+	public final fun newSuggestionSearch ()Lcom/baidu/mapapi/search/sug/SuggestionSearch;
+	public final fun newWeatherSearch ()Lcom/baidu/mapapi/search/weather/WeatherSearch;
 }
 
 public final class com/mapfusion/baidu/BaiduProviderFactory : com/mapfusion/api/MapProviderFactory {

@@ -4,24 +4,30 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import com.mapfusion.api.diagnostics.MapSdkIdentity
 import android.widget.FrameLayout
+import android.widget.GridLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
@@ -30,6 +36,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.mapfusion.api.MapConfig
 import com.mapfusion.api.MapProvider
 import com.mapfusion.api.async.RequestScope
@@ -65,7 +73,10 @@ import com.mapfusion.api.model.LocationMarkerStyle
 import com.mapfusion.api.model.MapCallback
 import com.mapfusion.api.model.MapError
 import com.mapfusion.api.model.MapImage
+import com.mapfusion.api.model.MapLanguage
+import com.mapfusion.api.model.MapLegalInfo
 import com.mapfusion.api.model.MapResult
+import com.mapfusion.api.model.MapTouchAction
 import com.mapfusion.api.model.MapUiOptions
 import com.mapfusion.api.model.MapLocation
 import com.mapfusion.api.model.MapType
@@ -92,7 +103,6 @@ import com.mapfusion.api.model.WeatherNow
 import com.mapfusion.api.model.WeatherRequest
 import com.mapfusion.factory.MapFusion
 import com.mapfusion.factory.MapFusionSession
-import com.mapfusion.full.MapFusionFull
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 
@@ -100,8 +110,25 @@ private enum class LocationPermissionAction { LOCATE, START_TRACK, START_NAVIGAT
 
 private enum class PrivacyDecision { UNDECIDED, ACCEPTED, DECLINED }
 
+private enum class DemoToolCategory(val title: String) {
+    COMMON("常用"),
+    NAVIGATION("导航"),
+    SEARCH("查询服务"),
+    OVERLAY("覆盖物"),
+    TRACK("轨迹"),
+}
+
+private enum class ActionVariant { DEFAULT, PRIMARY, DANGER }
+
+private data class DemoAction(
+    val title: String,
+    val onClick: () -> Unit,
+    val variant: ActionVariant = ActionVariant.DEFAULT,
+)
+
 private data class DemoMapSettings(
     var mapType: MapType = MapType.NORMAL,
+    var mapLanguage: MapLanguage = MapLanguage.CHINESE,
     var trafficEnabled: Boolean = false,
     var buildingsEnabled: Boolean = true,
     var indoorEnabled: Boolean = false,
@@ -119,6 +146,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var baiduButton: Button
     private lateinit var amapButton: Button
     private lateinit var privacyButton: Button
+    private lateinit var toolActionGrid: GridLayout
+    private val toolCategoryButtons = mutableMapOf<DemoToolCategory, Button>()
 
     private var currentProvider: MapProvider? = null
     private var mapController: MapController? = null
@@ -129,6 +158,7 @@ class MainActivity : ComponentActivity() {
     private var providerEpoch = 0
     private var selectedRouteMode = TravelMode.DRIVING
     private var selectedNavigationMode = EmbeddedNavigationMode.REAL
+    private var selectedToolCategory = DemoToolCategory.COMMON
     private var embeddedNavigationActive = false
     private var mapSettings = DemoMapSettings()
     private var pendingLocationAction: LocationPermissionAction? = null
@@ -187,14 +217,20 @@ class MainActivity : ComponentActivity() {
             ?.getString(STATE_NAVIGATION_MODE)
             ?.let { value -> runCatching { EmbeddedNavigationMode.valueOf(value) }.getOrNull() }
             ?: EmbeddedNavigationMode.REAL
+        selectedToolCategory = savedInstanceState
+            ?.getString(STATE_TOOL_CATEGORY)
+            ?.let { value -> runCatching { DemoToolCategory.valueOf(value) }.getOrNull() }
+            ?: DemoToolCategory.COMMON
         privacyDecision = readPrivacyDecision()
-        preferredProvider = savedInstanceState
+        preferredProvider = (savedInstanceState
             ?.getString(STATE_PREFERRED_PROVIDER)
             ?.let { value -> runCatching { Provider.valueOf(value) }.getOrNull() }
             ?: savedInstanceState
                 ?.getString(STATE_PROVIDER)
                 ?.let { value -> runCatching { Provider.valueOf(value) }.getOrNull() }
-            ?: Provider.BAIDU
+            ?: DemoOfficialNaviSdk.defaultProvider)
+            .takeIf(DemoOfficialNaviSdk::supportsMapProvider)
+            ?: DemoOfficialNaviSdk.defaultProvider
         pendingMapSavedState = savedInstanceState?.getBundle(STATE_MAP)
         setContentView(buildContentView())
         if (hasPrivacyConsent()) {
@@ -208,97 +244,150 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun buildContentView(): View {
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(10))
-            setBackgroundColor(COLOR_PAGE)
+            setBackgroundColor(DemoTheme.PAGE_BG)
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
         }
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-        }
-        providerStatusView = TextView(this).apply {
-            textSize = 14f
-            setTextColor(COLOR_TEXT)
-            text = "地图服务准备中"
-            maxLines = 2
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setBackgroundColor(DemoTheme.SURFACE)
+            elevation = dp(2).toFloat()
         }
         header.addView(
-            providerStatusView,
-            LinearLayout.LayoutParams(0, dp(44), 1f).apply { gravity = Gravity.CENTER_VERTICAL },
-        )
-        baiduButton = providerButton("百度") { switchProvider(Provider.BAIDU) }
-        amapButton = providerButton("高德") { switchProvider(Provider.AMAP) }
-        privacyButton = providerButton("隐私设置", ::showPrivacySettingsDialog).apply {
-            setTextColor(COLOR_TEXT)
-            background = panelBackground(Color.WHITE, COLOR_BORDER)
-        }
-        header.addView(baiduButton, LinearLayout.LayoutParams(dp(58), dp(38)))
-        header.addView(amapButton, LinearLayout.LayoutParams(dp(58), dp(38)).apply { marginStart = dp(5) })
-        header.addView(privacyButton, LinearLayout.LayoutParams(dp(78), dp(38)).apply { marginStart = dp(5) })
-        root.addView(header)
-
-        resultView = TextView(this).apply {
-            textSize = 13f
-            setTextColor(COLOR_MUTED)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            gravity = Gravity.CENTER_VERTICAL
-            maxLines = 3
-            background = panelBackground(COLOR_PANEL, COLOR_BORDER)
-            text = "等待操作"
-        }
-        root.addView(
-            resultView,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(66)).apply {
-                bottomMargin = dp(8)
+            DemoTheme.buildBrandBadge(this),
+            LinearLayout.LayoutParams(dp(36), dp(36)).apply {
+                marginEnd = dp(10)
             },
         )
+        val titleBlock = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(
+                TextView(this@MainActivity).apply {
+                    text = getString(R.string.brand_name)
+                    textSize = 17.5f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(DemoTheme.TEXT_PRIMARY)
+                    includeFontPadding = false
+                },
+            )
+        }
+        providerStatusView = TextView(this).apply {
+            textSize = 11.5f
+            setTextColor(DemoTheme.TEXT_SECONDARY)
+            text = "地图服务准备中"
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+        }
+        titleBlock.addView(
+            providerStatusView,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(2)
+            },
+        )
+        header.addView(titleBlock, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
-        mapContainer = FrameLayout(this).apply { setBackgroundColor(Color.rgb(225, 230, 234)) }
-        root.addView(
-            mapContainer,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
-        )
+        baiduButton = providerButton("百度") { switchProvider(Provider.BAIDU) }
+        amapButton = providerButton("高德") { switchProvider(Provider.AMAP) }
+        val supportsBaidu = DemoOfficialNaviSdk.supportsMapProvider(Provider.BAIDU)
+        val supportsAmap = DemoOfficialNaviSdk.supportsMapProvider(Provider.AMAP)
+        baiduButton.visibility = if (supportsBaidu) View.VISIBLE else View.GONE
+        amapButton.visibility = if (supportsAmap) View.VISIBLE else View.GONE
 
-        root.addView(sectionLabel("业务能力"))
-        root.addView(
-            actionStrip(
-                "定位" to ::demoLocation,
-                "路线导航" to ::showRouteNavigationDialog,
-                "地图设置" to ::showMapSettingsDialog,
-                "地址解析" to ::demoGeocode,
-                "逆地理" to ::demoReverseGeocode,
-                "周边 POI" to ::demoPoiSearch,
-                "行政区" to ::demoDistrict,
-                "实时天气" to ::demoWeatherNow,
-                "天气预报" to ::demoWeatherForecast,
-                "截图" to ::demoSnapshot,
-            ),
-        )
-        root.addView(sectionLabel("轨迹记录"))
-        root.addView(
-            actionStrip(
-                "开始" to ::demoStartTrack,
-                "暂停/继续" to ::demoPauseOrResumeTrack,
-                "结束" to ::demoStopTrack,
-                "清除" to ::demoClearTrack,
-            ),
-        )
-        root.addView(sectionLabel("覆盖物"))
-        root.addView(
-            actionStrip(
-                "Marker" to ::demoMarker,
-                "海量点" to ::demoMultiPoint,
-                "折线" to ::demoPolyline,
-                "多边形" to ::demoPolygon,
-                "圆" to ::demoCircle,
-                "文字" to ::demoText,
-                "地面图" to ::demoGroundOverlay,
-                "热力图" to ::demoHeatMap,
-                "清空" to ::clearMap,
-            ),
-        )
+        val switcherContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(3), dp(3), dp(3), dp(3))
+            background = DemoTheme.roundedRect(
+                context = this@MainActivity,
+                fillColor = DemoTheme.SURFACE_SUBTLE,
+                strokeColor = DemoTheme.BORDER,
+                cornerDp = 11f,
+            )
+            addView(baiduButton, LinearLayout.LayoutParams(dp(54), dp(32)))
+            addView(
+                amapButton,
+                LinearLayout.LayoutParams(dp(54), dp(32)).apply {
+                    if (supportsBaidu && supportsAmap) marginStart = dp(3)
+                },
+            )
+        }
+        header.addView(switcherContainer)
+
+        privacyButton = providerButton("隐私", ::showPrivacySettingsDialog).apply {
+            setTextColor(DemoTheme.TEXT_PRIMARY)
+            background = DemoTheme.interactiveSurface(
+                context = this@MainActivity,
+                fillColor = DemoTheme.SURFACE_ELEVATED,
+                pressedColor = DemoTheme.SURFACE_PRESSED,
+                strokeColor = DemoTheme.BORDER_STRONG,
+                cornerDp = 10f,
+            )
+        }
+        header.addView(privacyButton, LinearLayout.LayoutParams(dp(56), dp(36)).apply { marginStart = dp(8) })
+        root.addView(header)
+        root.addView(View(this).apply { setBackgroundColor(DemoTheme.BORDER) }, fullWidthHeight(1))
+
+        mapContainer = FrameLayout(this).apply { setBackgroundColor(DemoTheme.MAP_PLACEHOLDER) }
+        resultView = TextView(this).apply {
+            textSize = 13f
+            setTextColor(DemoTheme.TEXT_SECONDARY)
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            gravity = Gravity.CENTER_VERTICAL
+            setLineSpacing(dp(2).toFloat(), 1f)
+            maxLines = if (landscape) 2 else 3
+            ellipsize = TextUtils.TruncateAt.END
+            minHeight = dp(if (landscape) 46 else 54)
+            background = DemoTheme.roundedRect(
+                context = this@MainActivity,
+                fillColor = StatusTone.NEUTRAL.cardBgColor,
+                strokeColor = StatusTone.NEUTRAL.cardBorderColor,
+                cornerDp = 12f,
+            )
+            text = DemoTheme.formatStatusText("等待操作", "点击下方功能卡片体验统一地图 API", StatusTone.NEUTRAL)
+        }
+        val toolPanel = buildToolPanel(landscape)
+        if (landscape) {
+            val content = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(
+                    mapContainer,
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
+                )
+                addView(
+                    View(this@MainActivity).apply { setBackgroundColor(DemoTheme.BORDER) },
+                    LinearLayout.LayoutParams(dp(1), ViewGroup.LayoutParams.MATCH_PARENT),
+                )
+                addView(
+                    toolPanel,
+                    LinearLayout.LayoutParams(
+                        minOf(dp(372), (resources.displayMetrics.widthPixels * 0.46f).toInt()),
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    ),
+                )
+            }
+            root.addView(
+                content,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            )
+        } else {
+            root.addView(
+                mapContainer,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            )
+            root.addView(toolPanel)
+        }
+        showToolCategory(selectedToolCategory)
         return root
     }
 
@@ -412,24 +501,63 @@ class MainActivity : ComponentActivity() {
 
     private fun registerFactoriesIfNeeded() {
         if (factoriesRegistered) return
-        MapFusionFull.install()
+        DemoOfficialNaviSdk.install()
         factoriesRegistered = true
+    }
+
+    private fun openOfficialNavigation() {
+        if (!ensurePrivacyConsentForAction()) return
+        val provider = currentProvider?.provider ?: run {
+            showError("官方导航不可用", "地图尚未初始化")
+            return
+        }
+        if (!DemoOfficialNaviSdk.supportsOfficialNavigation(provider)) {
+            showError("官方导航不可用", "当前 Demo 变体未装载${provider.displayName()} Navi 模块")
+            return
+        }
+        val origin = operationCenter()
+        startActivity(
+            OfficialNavigationActivity.createIntent(
+                context = this,
+                provider = provider,
+                origin = origin,
+                destination = routeDestination(origin),
+            ),
+        )
     }
 
     private fun showPrivacyUnavailableState() {
         mapContainer.removeAllViews()
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(24), dp(22), dp(24), dp(22))
+            background = DemoTheme.roundedRect(
+                context = this@MainActivity,
+                fillColor = DemoTheme.SURFACE,
+                strokeColor = DemoTheme.BORDER,
+                cornerDp = 16f,
+            )
+            addView(
+                TextView(this@MainActivity).apply {
+                    text = getString(R.string.map_service_disabled)
+                    textSize = 15f
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.CENTER
+                    setLineSpacing(dp(4).toFloat(), 1f)
+                    setTextColor(DemoTheme.TEXT_SECONDARY)
+                },
+            )
+        }
         mapContainer.addView(
-            TextView(this).apply {
-                text = getString(R.string.map_service_disabled)
-                textSize = 16f
-                gravity = Gravity.CENTER
-                setTextColor(COLOR_MUTED)
-                setPadding(dp(24), dp(24), dp(24), dp(24))
-            },
+            card,
             FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            ).apply {
+                setMargins(dp(24), dp(24), dp(24), dp(24))
+            },
         )
         providerStatusView.text = "地图服务未启用"
         styleProviderButton(baiduButton, selected = false)
@@ -468,6 +596,10 @@ class MainActivity : ComponentActivity() {
 
     /** 唯一厂商切换点；地图就绪后自动定位当前位置，不自动添加演示覆盖物。 */
     private fun switchProvider(provider: Provider, savedState: Bundle? = null) {
+        if (!DemoOfficialNaviSdk.supportsMapProvider(provider)) {
+            showError("地图厂商不可用", "当前 Demo 变体未装载${provider.displayName()} SDK")
+            return
+        }
         preferredProvider = provider
         if (!hasPrivacyConsent()) {
             pendingMapSavedState = savedState ?: pendingMapSavedState
@@ -525,7 +657,11 @@ class MainActivity : ComponentActivity() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 ),
             )
-            controller.setUiOptions(MapUiOptions(scaleControlsEnabled = true, compassEnabled = true))
+            when (val result = controller.applyUiOptions(MapUiOptions(scaleControlsEnabled = true, compassEnabled = true))) {
+                is MapResult.Success -> Unit
+                is MapResult.Failure -> error("地图 UI 初始化失败：${result.error.message}")
+            }
+            bindMapInteractionDemo(controller)
             controller.moveCamera(CameraUpdate(target = defaultPoint(provider), zoom = 14f, animated = false))
             currentProvider = createdProvider
             mapController = controller
@@ -556,6 +692,26 @@ class MainActivity : ComponentActivity() {
             )
             Log.e(TAG, "切换 $provider 失败", error)
             showError("地图初始化失败", error.message ?: error::class.java.simpleName)
+        }
+    }
+
+    private fun bindMapInteractionDemo(controller: MapController) {
+        controller.setOnMapPoiClickListener { poi ->
+            showSuccess(
+                poi.name ?: "底图 POI",
+                "id=${poi.id ?: "-"} · ${poi.position.latitude}, ${poi.position.longitude}",
+            )
+        }
+        controller.setOnMarkerDragListener { event ->
+            showInfo(
+                "Marker ${event.phase.name.lowercase(Locale.ROOT)}",
+                "${event.position.latitude}, ${event.position.longitude}",
+            )
+        }
+        controller.setOnMapTouchListener { event ->
+            if (event.action == MapTouchAction.DOWN) {
+                Log.d(TAG, "地图触摸 DOWN x=${event.x}, y=${event.y}, pointers=${event.pointerCount}")
+            }
         }
     }
 
@@ -988,41 +1144,43 @@ class MainActivity : ComponentActivity() {
         )
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(6), dp(20), 0)
+            setPadding(dp(18), dp(8), dp(18), dp(4))
         }
-        panel.addView(dialogLabel("出行方式"))
-        val modeSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                modes.map { it.displayName() },
-            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(modes.indexOf(selectedRouteMode).coerceAtLeast(0))
-        }
-        panel.addView(modeSpinner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
-        panel.addView(dialogLabel("导航模式"))
+        val selectorCard = DemoTheme.dialogSectionCard(this)
+        selectorCard.addView(dialogLabel("出行方式"))
+        val modeSpinner = styledSpinner(
+            modes.map { it.displayName() },
+            modes.indexOf(selectedRouteMode).coerceAtLeast(0),
+        )
+        selectorCard.addView(
+            modeSpinner,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)).apply {
+                topMargin = dp(4)
+            },
+        )
+        selectorCard.addView(dialogLabel("导航模式"))
         val navigationModes = listOf(
             EmbeddedNavigationMode.REAL,
             EmbeddedNavigationMode.SIMULATED,
         )
-        val navigationModeSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                navigationModes.map { it.displayName() },
-            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(navigationModes.indexOf(selectedNavigationMode).coerceAtLeast(0))
-        }
-        panel.addView(
-            navigationModeSpinner,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)),
+        val navigationModeSpinner = styledSpinner(
+            navigationModes.map { it.displayName() },
+            navigationModes.indexOf(selectedNavigationMode).coerceAtLeast(0),
         )
+        selectorCard.addView(
+            navigationModeSpinner,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)).apply {
+                topMargin = dp(4)
+            },
+        )
+        panel.addView(selectorCard)
         panel.addView(
             TextView(this).apply {
                 text = getString(R.string.route_navigation_summary)
-                textSize = 13f
-                setTextColor(COLOR_MUTED)
-                setPadding(0, dp(8), 0, dp(4))
+                textSize = 12.5f
+                setLineSpacing(dp(2).toFloat(), 1f)
+                setTextColor(DemoTheme.TEXT_SECONDARY)
+                setPadding(dp(4), dp(10), dp(4), dp(8))
             },
         )
         panel.addView(
@@ -1048,40 +1206,156 @@ class MainActivity : ComponentActivity() {
             .show()
     }
 
+    private fun showSdkIdentityDialog() {
+        val message = when (val result = MapSdkIdentity.read(this)) {
+            is MapResult.Success -> buildString {
+                appendLine("当前安装包：${result.data.packageName}")
+                appendLine("变体：${BuildConfig.FLAVOR}")
+                appendLine("SHA1：${result.data.signingSha1.joinToString()}")
+                appendLine("百度 MCODE：${result.data.baiduMcodes.joinToString()}")
+                append("两家控制台都必须绑定上面的实际包名和签名。正式签名另行登记。")
+            }
+            is MapResult.Failure -> result.error.message
+        }
+        AlertDialog.Builder(this).setTitle("SDK 接入诊断")
+            .setMessage(message).setPositiveButton("关闭", null).show()
+    }
+
+    private fun showIndoorFloorDialog() {
+        val controller = mapController ?: return
+        if (!controller.supportsIndoorFloorControl()) {
+            showError("室内楼层", "当前厂商未提供室内楼层控制")
+            return
+        }
+        controller.setIndoorEnabled(true)
+        controller.setOnIndoorBuildingListener { building ->
+            showInfo("室内地图", building?.let { "建筑 ${it.id} · 当前层 ${it.activeFloorId}" } ?: "已离开室内建筑")
+        }
+        val building = controller.activeIndoorBuilding()
+        if (building == null || building.floors.isEmpty()) {
+            showInfo("室内图层已开启", "放大到有室内数据的建筑后，再点击“室内楼层”选择楼层")
+            return
+        }
+        AlertDialog.Builder(this).setTitle("楼层 · 当前 ${building.activeFloorId}")
+            .setItems(building.floors.map { it.name }.toTypedArray()) { _, index ->
+                when (val result = controller.switchIndoorFloor(building.id, building.floors[index].id)) {
+                    is MapResult.Success -> showInfo("切层请求已提交", "等待地图楼层更新")
+                    is MapResult.Failure -> showMapError("切换楼层失败", result.error)
+                }
+            }.setNegativeButton("关闭", null).show()
+    }
+
     private fun showMapSettingsDialog() {
         if (!ensurePrivacyConsentForAction()) return
-        val mapTypes = mapController
+        val controller = mapController
+        val mapTypes = controller
             ?.supportedMapTypes()
             ?.let { supported -> MapType.entries.filter(supported::contains) }
             ?.ifEmpty { listOf(MapType.NORMAL) }
             ?: listOf(MapType.NORMAL)
-        val draft = mapSettings.copy(mapType = mapController?.getMapType() ?: mapSettings.mapType)
+        val mapLanguages = controller
+            ?.supportedMapLanguages()
+            ?.let { supported -> MapLanguage.entries.filter(supported::contains) }
+            .orEmpty()
+        val draft = mapSettings.copy(
+            mapType = controller?.getMapType() ?: mapSettings.mapType,
+            mapLanguage = mapSettings.mapLanguage.takeIf(mapLanguages::contains)
+                ?: mapLanguages.firstOrNull()
+                ?: mapSettings.mapLanguage,
+        )
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(6), dp(20), 0)
+            setPadding(dp(18), dp(8), dp(18), dp(4))
         }
-        panel.addView(dialogLabel("地图类型"))
-        val typeSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_spinner_item,
-                mapTypes.map { it.displayName() },
-            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(mapTypes.indexOf(draft.mapType).coerceAtLeast(0))
+        val selectorCard = DemoTheme.dialogSectionCard(this)
+        selectorCard.addView(dialogLabel("地图类型"))
+        val typeSpinner = styledSpinner(
+            mapTypes.map { it.displayName() },
+            mapTypes.indexOf(draft.mapType).coerceAtLeast(0),
+        )
+        selectorCard.addView(
+            typeSpinner,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)).apply {
+                topMargin = dp(4)
+            },
+        )
+        val languageSpinner = if (mapLanguages.isNotEmpty()) {
+            selectorCard.addView(dialogLabel("底图语言"))
+            styledSpinner(
+                mapLanguages.map { it.displayName() },
+                mapLanguages.indexOf(draft.mapLanguage).coerceAtLeast(0),
+            ).also {
+                selectorCard.addView(
+                    it,
+                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)).apply {
+                        topMargin = dp(4)
+                    },
+                )
+            }
+        } else {
+            null
         }
-        panel.addView(typeSpinner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
-        panel.addView(settingSwitch("实时交通", draft.trafficEnabled) { draft.trafficEnabled = it })
-        panel.addView(settingSwitch("3D 建筑", draft.buildingsEnabled) { draft.buildingsEnabled = it })
-        panel.addView(settingSwitch("室内地图", draft.indoorEnabled) { draft.indoorEnabled = it })
-        panel.addView(settingSwitch("底图 POI", draft.mapPoiEnabled) { draft.mapPoiEnabled = it })
-        panel.addView(settingSwitch("指南针", draft.compassEnabled) { draft.compassEnabled = it })
-        panel.addView(settingSwitch("缩放控件", draft.zoomControlsEnabled) { draft.zoomControlsEnabled = it })
+        panel.addView(selectorCard)
+
+        val switchesCard = DemoTheme.dialogSectionCard(this).apply {
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+        }
+        switchesCard.addView(settingSwitch("实时交通", draft.trafficEnabled) { draft.trafficEnabled = it })
+        switchesCard.addView(settingSwitch("3D 建筑", draft.buildingsEnabled) { draft.buildingsEnabled = it })
+        switchesCard.addView(settingSwitch("室内地图", draft.indoorEnabled) { draft.indoorEnabled = it })
+        switchesCard.addView(settingSwitch("底图 POI", draft.mapPoiEnabled) { draft.mapPoiEnabled = it })
+        switchesCard.addView(settingSwitch("指南针", draft.compassEnabled) { draft.compassEnabled = it })
+        switchesCard.addView(settingSwitch("缩放控件", draft.zoomControlsEnabled) { draft.zoomControlsEnabled = it })
+        panel.addView(
+            switchesCard,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        val toolsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(
+                actionButton("SDK 接入诊断", ::showSdkIdentityDialog),
+                LinearLayout.LayoutParams(0, dp(40), 1f),
+            )
+            addView(
+                actionButton("室内楼层", ::showIndoorFloorDialog),
+                LinearLayout.LayoutParams(0, dp(40), 1f).apply { marginStart = dp(8) },
+            )
+        }
+        panel.addView(
+            toolsRow,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(10)
+            },
+        )
+        controller?.legalInfo()?.displaySummary()?.takeIf(String::isNotBlank)?.let { legalSummary ->
+            panel.addView(dialogLabel("官方地图信息"))
+            panel.addView(
+                TextView(this).apply {
+                    text = legalSummary
+                    textSize = 12f
+                    setLineSpacing(dp(2).toFloat(), 1f)
+                    setTextColor(DemoTheme.TEXT_SECONDARY)
+                    setPadding(dp(4), dp(4), dp(4), dp(8))
+                },
+            )
+        }
         AlertDialog.Builder(this)
             .setTitle("地图基础设置")
-            .setView(panel)
+            .setView(
+                ScrollView(this).apply {
+                    isFillViewport = true
+                    addView(panel)
+                },
+            )
             .setNegativeButton("取消", null)
             .setPositiveButton("应用") { _, _ ->
                 draft.mapType = mapTypes[typeSpinner.selectedItemPosition]
+                if (languageSpinner != null) {
+                    draft.mapLanguage = mapLanguages[languageSpinner.selectedItemPosition]
+                }
                 applyMapSettings(draft)
             }
             .show()
@@ -1096,17 +1370,34 @@ class MainActivity : ComponentActivity() {
                 return@startSync
             }
         }
+        if (controller.supportedMapLanguages().isNotEmpty()) {
+            when (val result = controller.applyMapLanguage(settings.mapLanguage)) {
+                is MapResult.Success -> settings.mapLanguage = result.data
+                is MapResult.Failure -> {
+                    showMapError("底图语言应用失败", result.error)
+                    return@startSync
+                }
+            }
+        }
         controller.setTrafficEnabled(settings.trafficEnabled)
         controller.setBuildingsEnabled(settings.buildingsEnabled)
         controller.setIndoorEnabled(settings.indoorEnabled)
         controller.setMapPoiEnabled(settings.mapPoiEnabled)
-        controller.setUiOptions(
-            MapUiOptions(
-                zoomControlsEnabled = settings.zoomControlsEnabled,
-                scaleControlsEnabled = true,
-                compassEnabled = settings.compassEnabled,
-            ),
-        )
+        when (
+            val result = controller.applyUiOptions(
+                MapUiOptions(
+                    zoomControlsEnabled = settings.zoomControlsEnabled,
+                    scaleControlsEnabled = true,
+                    compassEnabled = settings.compassEnabled,
+                ),
+            )
+        ) {
+            is MapResult.Success -> Unit
+            is MapResult.Failure -> {
+                showMapError("地图 UI 设置失败", result.error)
+                return@startSync
+            }
+        }
         mapSettings = settings.copy(mapType = appliedType)
         val toggles = listOfNotNull(
             "交通".takeIf { settings.trafficEnabled },
@@ -1115,14 +1406,34 @@ class MainActivity : ComponentActivity() {
             "POI".takeIf { settings.mapPoiEnabled },
             "指南针".takeIf { settings.compassEnabled },
         ).joinToString("、").ifBlank { "基础图层均关闭" }
-        showSuccess("地图设置已应用 · ${appliedType.displayName()}", toggles)
+        showSuccess(
+            "地图设置已应用 · ${appliedType.displayName()}",
+            "$toggles · ${settings.mapLanguage.displayName()}",
+        )
     }
 
     private fun dialogLabel(text: String) = TextView(this).apply {
         this.text = text
-        textSize = 12f
-        setTextColor(COLOR_MUTED)
-        setPadding(0, dp(8), 0, 0)
+        textSize = 11.5f
+        typeface = Typeface.DEFAULT_BOLD
+        setTextColor(DemoTheme.TEXT_MUTED)
+        setPadding(dp(2), dp(8), dp(2), dp(2))
+    }
+
+    private fun styledSpinner(items: List<String>, selectedIndex: Int) = Spinner(this).apply {
+        adapter = ArrayAdapter(
+            this@MainActivity,
+            android.R.layout.simple_spinner_item,
+            items,
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        setSelection(selectedIndex)
+        background = DemoTheme.roundedRect(
+            context = this@MainActivity,
+            fillColor = DemoTheme.SURFACE,
+            strokeColor = DemoTheme.BORDER_STRONG,
+            cornerDp = 10f,
+        )
+        setPadding(dp(10), 0, dp(10), 0)
     }
 
     @Suppress("UseSwitchCompatOrMaterialCode")
@@ -1131,10 +1442,10 @@ class MainActivity : ComponentActivity() {
             this.text = text
             isChecked = checked
             textSize = 14f
-            setTextColor(COLOR_TEXT)
-            setPadding(0, 0, 0, 0)
+            setTextColor(DemoTheme.TEXT_PRIMARY)
+            setPadding(dp(4), 0, dp(4), 0)
             setOnCheckedChangeListener { _, value -> onChanged(value) }
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44))
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42))
         }
 
     private fun demoRoute(mode: TravelMode) = startAsync("${mode.displayName()}路线") { epoch ->
@@ -1250,6 +1561,14 @@ class MainActivity : ComponentActivity() {
         when (val result = requireNotNull(mapSession?.embeddedNavigator).resume()) {
             is MapResult.Success -> showInfo("导航已继续", "正在恢复导航推进")
             is MapResult.Failure -> showMapError("继续导航失败", result.error)
+        }
+    }
+
+    private fun pauseOrResumeEmbeddedNavigation() {
+        if (mapSession?.embeddedNavigator?.state == EmbeddedNavigationState.PAUSED) {
+            resumeEmbeddedNavigation()
+        } else {
+            pauseEmbeddedNavigation()
         }
     }
 
@@ -1611,14 +1930,19 @@ class MainActivity : ComponentActivity() {
         showError("$title · ${error.type}$code", "${error.message}$raw")
     }
 
-    private fun showInfo(title: String, detail: String) = showResult(title, detail, COLOR_ACCENT)
-    private fun showSuccess(title: String, detail: String) = showResult(title, detail, COLOR_SUCCESS)
-    private fun showError(title: String, detail: String) = showResult(title, detail, COLOR_ERROR)
+    private fun showInfo(title: String, detail: String) = showResult(title, detail, StatusTone.INFO)
+    private fun showSuccess(title: String, detail: String) = showResult(title, detail, StatusTone.SUCCESS)
+    private fun showError(title: String, detail: String) = showResult(title, detail, StatusTone.ERROR)
 
-    private fun showResult(title: String, detail: String, accent: Int) {
-        resultView.text = getString(R.string.result_message, title, detail)
-        resultView.setTextColor(COLOR_TEXT)
-        resultView.background = panelBackground(Color.WHITE, accent)
+    private fun showResult(title: String, detail: String, tone: StatusTone) {
+        resultView.text = DemoTheme.formatStatusText(title, detail, tone)
+        resultView.background = DemoTheme.roundedRect(
+            context = this,
+            fillColor = tone.cardBgColor,
+            strokeColor = tone.cardBorderColor,
+            cornerDp = 12f,
+            strokeDp = 1f,
+        )
     }
 
     private fun updateProviderHeader(provider: Provider, capabilityCount: Int) {
@@ -1636,13 +1960,241 @@ class MainActivity : ComponentActivity() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-    private fun sectionLabel(text: String) = TextView(this).apply {
-        this.text = text
-        textSize = 12f
-        setTextColor(COLOR_MUTED)
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(2), dp(5), 0, dp(2))
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(25))
+    private fun buildToolPanel(landscape: Boolean): View = LinearLayout(this).apply {
+        val compactHeight = isCompactHeight()
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(12), dp(if (compactHeight) 6 else 8), dp(12), dp(if (compactHeight) 8 else 12))
+        background = if (landscape) {
+            DemoTheme.roundedRect(
+                context = this@MainActivity,
+                fillColor = DemoTheme.SURFACE,
+                strokeColor = Color.TRANSPARENT,
+                cornerDp = 0f,
+            )
+        } else {
+            DemoTheme.topSheetBackground(
+                context = this@MainActivity,
+                fillColor = DemoTheme.SURFACE,
+                strokeColor = DemoTheme.BORDER,
+                cornerDp = 20f,
+            )
+        }
+        elevation = dp(8).toFloat()
+
+        if (!landscape) {
+            addView(
+                DemoTheme.buildSheetHandle(this@MainActivity),
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply {
+                    bottomMargin = dp(4)
+                },
+            )
+        }
+
+        addView(
+            resultView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp(if (compactHeight) 6 else 10)
+            },
+        )
+
+        toolCategoryButtons.clear()
+        addView(
+            LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(4), dp(4), dp(4), dp(4))
+                background = DemoTheme.roundedRect(
+                    context = this@MainActivity,
+                    fillColor = DemoTheme.SURFACE_SUBTLE,
+                    strokeColor = DemoTheme.BORDER,
+                    cornerDp = 12f,
+                )
+                DemoToolCategory.entries.forEachIndexed { index, category ->
+                    val button = toolCategoryButton(category)
+                    toolCategoryButtons[category] = button
+                    addView(
+                        button,
+                        LinearLayout.LayoutParams(0, dp(if (compactHeight) 32 else 36), 1f).apply {
+                            if (index > 0) marginStart = dp(4)
+                        },
+                    )
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp(if (compactHeight) 6 else 8)
+            },
+        )
+
+        toolActionGrid = GridLayout(this@MainActivity).apply {
+            columnCount = TOOL_COLUMN_COUNT
+            rowCount = 1
+            alignmentMode = GridLayout.ALIGN_MARGINS
+            useDefaultMargins = false
+        }
+        addView(
+            toolActionGrid,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+    }
+
+    private fun showToolCategory(category: DemoToolCategory) {
+        selectedToolCategory = category
+        toolCategoryButtons.forEach { (item, button) -> styleToolCategoryButton(button, item == category) }
+        toolActionGrid.removeAllViews()
+        val actions = toolActions(category)
+        val compactHeight = isCompactHeight()
+        val actionHeightDp = if (compactHeight) TOOL_ACTION_COMPACT_HEIGHT_DP else TOOL_ACTION_HEIGHT_DP
+        val rows = ((actions.size + TOOL_COLUMN_COUNT - 1) / TOOL_COLUMN_COUNT).coerceAtLeast(1)
+        toolActionGrid.rowCount = rows
+        toolActionGrid.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(rows * (actionHeightDp + TOOL_ACTION_VERTICAL_MARGIN_DP * 2)),
+        )
+        actions.forEachIndexed { index, action ->
+            val column = index % TOOL_COLUMN_COUNT
+            val row = index / TOOL_COLUMN_COUNT
+            toolActionGrid.addView(
+                toolActionButton(action),
+                GridLayout.LayoutParams(
+                    GridLayout.spec(row),
+                    GridLayout.spec(column, 1, 1f),
+                ).apply {
+                    width = 0
+                    height = dp(actionHeightDp)
+                    setMargins(
+                        dp(TOOL_ACTION_HORIZONTAL_MARGIN_DP),
+                        dp(TOOL_ACTION_VERTICAL_MARGIN_DP),
+                        dp(TOOL_ACTION_HORIZONTAL_MARGIN_DP),
+                        dp(TOOL_ACTION_VERTICAL_MARGIN_DP),
+                    )
+                },
+            )
+        }
+    }
+
+    private fun toolActions(category: DemoToolCategory): List<DemoAction> = when (category) {
+        DemoToolCategory.COMMON -> listOf(
+            DemoAction("定位", ::demoLocation, ActionVariant.PRIMARY),
+            DemoAction("地图设置", ::showMapSettingsDialog),
+            DemoAction("截图", ::demoSnapshot),
+        )
+        DemoToolCategory.NAVIGATION -> buildList {
+            add(DemoAction("路线/轻导航", ::showRouteNavigationDialog, ActionVariant.PRIMARY))
+            if (DemoOfficialNaviSdk.supportsOfficialNavigation(preferredProvider)) {
+                add(DemoAction("官方 Navi", ::openOfficialNavigation, ActionVariant.PRIMARY))
+            }
+            add(DemoAction("暂停/继续", ::pauseOrResumeEmbeddedNavigation))
+            add(DemoAction("停止轻导航", ::stopEmbeddedNavigation, ActionVariant.DANGER))
+        }
+        DemoToolCategory.SEARCH -> listOf(
+            DemoAction("地址解析", ::demoGeocode),
+            DemoAction("逆地理", ::demoReverseGeocode),
+            DemoAction("周边 POI", ::demoPoiSearch, ActionVariant.PRIMARY),
+            DemoAction("行政区", ::demoDistrict),
+            DemoAction("实时天气", ::demoWeatherNow),
+            DemoAction("天气预报", ::demoWeatherForecast),
+        )
+        DemoToolCategory.OVERLAY -> listOf(
+            DemoAction("Marker", ::demoMarker),
+            DemoAction("海量点", ::demoMultiPoint),
+            DemoAction("折线", ::demoPolyline),
+            DemoAction("多边形", ::demoPolygon),
+            DemoAction("圆", ::demoCircle),
+            DemoAction("文字", ::demoText),
+            DemoAction("地面图", ::demoGroundOverlay),
+            DemoAction("热力图", ::demoHeatMap),
+            DemoAction("清空", ::clearMap, ActionVariant.DANGER),
+        )
+        DemoToolCategory.TRACK -> listOf(
+            DemoAction("开始", ::demoStartTrack, ActionVariant.PRIMARY),
+            DemoAction("暂停/继续", ::demoPauseOrResumeTrack),
+            DemoAction("结束", ::demoStopTrack),
+            DemoAction("清除", ::demoClearTrack, ActionVariant.DANGER),
+        )
+    }
+
+    private fun toolCategoryButton(category: DemoToolCategory) = Button(this).apply {
+        text = category.title
+        isAllCaps = false
+        textSize = 12.5f
+        minWidth = 0
+        minimumWidth = 0
+        minimumHeight = 0
+        minHeight = 0
+        stateListAnimator = null
+        setPadding(dp(4), 0, dp(4), 0)
+        setOnClickListener { showToolCategory(category) }
+    }
+
+    private fun styleToolCategoryButton(button: Button, selected: Boolean) {
+        button.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        button.setTextColor(if (selected) Color.WHITE else DemoTheme.TEXT_SECONDARY)
+        button.background = DemoTheme.interactiveSurface(
+            context = this,
+            fillColor = if (selected) DemoTheme.BRAND else Color.TRANSPARENT,
+            pressedColor = if (selected) DemoTheme.BRAND_DARK else DemoTheme.SURFACE_PRESSED,
+            strokeColor = Color.TRANSPARENT,
+            cornerDp = 9f,
+            strokeDp = 0f,
+        )
+    }
+
+    private fun toolActionButton(action: DemoAction) = Button(this).apply {
+        text = action.title
+        isAllCaps = false
+        textSize = 12.5f
+        typeface = if (action.variant != ActionVariant.DEFAULT) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        maxLines = 1
+        ellipsize = TextUtils.TruncateAt.END
+        gravity = Gravity.CENTER
+        minWidth = 0
+        minimumWidth = 0
+        minimumHeight = 0
+        minHeight = 0
+        setPadding(dp(4), 0, dp(4), 0)
+        stateListAnimator = null
+        when (action.variant) {
+            ActionVariant.PRIMARY -> {
+                setTextColor(DemoTheme.BRAND_DARK)
+                background = DemoTheme.interactiveSurface(
+                    context = this@MainActivity,
+                    fillColor = DemoTheme.BRAND_SOFT,
+                    pressedColor = DemoTheme.SURFACE_PRESSED,
+                    strokeColor = DemoTheme.BRAND_BORDER,
+                    cornerDp = 11f,
+                )
+            }
+            ActionVariant.DANGER -> {
+                setTextColor(DemoTheme.ERROR)
+                background = DemoTheme.interactiveSurface(
+                    context = this@MainActivity,
+                    fillColor = DemoTheme.ERROR_SOFT,
+                    pressedColor = DemoTheme.SURFACE_PRESSED,
+                    strokeColor = DemoTheme.ERROR_BORDER,
+                    cornerDp = 11f,
+                )
+            }
+            ActionVariant.DEFAULT -> {
+                setTextColor(DemoTheme.TEXT_PRIMARY)
+                background = DemoTheme.interactiveSurface(
+                    context = this@MainActivity,
+                    fillColor = DemoTheme.SURFACE_ELEVATED,
+                    pressedColor = DemoTheme.SURFACE_PRESSED,
+                    strokeColor = DemoTheme.BORDER,
+                    cornerDp = 11f,
+                )
+            }
+        }
+        setOnClickListener { action.onClick() }
     }
 
     private fun actionStrip(vararg actions: Pair<String, () -> Unit>): HorizontalScrollView =
@@ -1655,8 +2207,8 @@ class MainActivity : ComponentActivity() {
                     actions.forEachIndexed { index, (label, action) ->
                         addView(
                             actionButton(label, action),
-                            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42)).apply {
-                                if (index > 0) marginStart = dp(6)
+                            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply {
+                                if (index > 0) marginStart = dp(8)
                             },
                         )
                     }
@@ -1668,12 +2220,19 @@ class MainActivity : ComponentActivity() {
         this.text = text
         isAllCaps = false
         textSize = 13f
+        typeface = Typeface.DEFAULT_BOLD
         minWidth = dp(82)
         minimumHeight = 0
         minHeight = 0
         setPadding(dp(14), 0, dp(14), 0)
-        setTextColor(COLOR_TEXT)
-        backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+        setTextColor(DemoTheme.TEXT_PRIMARY)
+        background = DemoTheme.interactiveSurface(
+            context = this@MainActivity,
+            fillColor = DemoTheme.SURFACE,
+            pressedColor = DemoTheme.SURFACE_PRESSED,
+            strokeColor = DemoTheme.BORDER_STRONG,
+            cornerDp = 10f,
+        )
         stateListAnimator = null
         setOnClickListener { onClick() }
     }
@@ -1681,19 +2240,39 @@ class MainActivity : ComponentActivity() {
     private fun providerButton(text: String, onClick: () -> Unit) = Button(this).apply {
         this.text = text
         isAllCaps = false
-        textSize = 13f
+        textSize = 12.5f
         minWidth = 0
         minimumWidth = 0
         minimumHeight = 0
         minHeight = 0
         stateListAnimator = null
-        setPadding(dp(8), 0, dp(8), 0)
+        setPadding(dp(6), 0, dp(6), 0)
         setOnClickListener { onClick() }
     }
 
     private fun styleProviderButton(button: Button, selected: Boolean) {
-        button.setTextColor(if (selected) Color.WHITE else COLOR_TEXT)
-        button.background = panelBackground(if (selected) COLOR_ACCENT else Color.WHITE, COLOR_BORDER)
+        button.setTextColor(if (selected) Color.WHITE else DemoTheme.TEXT_SECONDARY)
+        button.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        button.background = DemoTheme.interactiveSurface(
+            context = this,
+            fillColor = if (selected) DemoTheme.BRAND else Color.TRANSPARENT,
+            pressedColor = if (selected) DemoTheme.BRAND_DARK else DemoTheme.SURFACE_PRESSED,
+            strokeColor = Color.TRANSPARENT,
+            cornerDp = 8f,
+            strokeDp = 0f,
+        )
+    }
+
+    private fun controlBackground(
+        fillColor: Int,
+        pressedColor: Int,
+        strokeColor: Int,
+    ) = StateListDrawable().apply {
+        addState(
+            intArrayOf(android.R.attr.state_pressed),
+            panelBackground(pressedColor, strokeColor),
+        )
+        addState(intArrayOf(), panelBackground(fillColor, strokeColor))
     }
 
     private fun panelBackground(fillColor: Int, strokeColor: Int) = GradientDrawable().apply {
@@ -1702,6 +2281,12 @@ class MainActivity : ComponentActivity() {
         setColor(fillColor)
         setStroke(dp(1), strokeColor)
     }
+
+    private fun fullWidthHeight(heightDp: Int) =
+        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp))
+
+    private fun isCompactHeight(): Boolean =
+        resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     private fun Provider.displayName(): String = when (this) {
         Provider.BAIDU -> "百度"
@@ -1715,6 +2300,21 @@ class MainActivity : ComponentActivity() {
         MapType.NAVIGATION -> "导航"
         MapType.NONE -> "无底图"
     }
+
+    private fun MapLanguage.displayName(): String = when (this) {
+        MapLanguage.CHINESE -> "中文"
+        MapLanguage.ENGLISH -> "English"
+        MapLanguage.LOCAL -> "跟随系统"
+    }
+
+    private fun MapLegalInfo.displaySummary(): String = listOfNotNull(
+        mapContentApprovalNumber?.let { "审图号 $it" },
+        englishMapApprovalNumber?.let { "英文地图 $it" },
+        satelliteImageApprovalNumber?.let { "卫星影像 $it" },
+        terrainApprovalNumber?.let { "地形图 $it" },
+        copyright,
+        mappingQualification,
+    ).joinToString("\n")
 
     private fun TravelMode.displayName(): String = when (canonical()) {
         TravelMode.DRIVING -> "驾车"
@@ -1779,6 +2379,7 @@ class MainActivity : ComponentActivity() {
         pendingLocationAction?.let { outState.putString(STATE_PENDING_LOCATION_ACTION, it.name) }
         outState.putString(STATE_ROUTE_MODE, selectedRouteMode.name)
         outState.putString(STATE_NAVIGATION_MODE, selectedNavigationMode.name)
+        outState.putString(STATE_TOOL_CATEGORY, selectedToolCategory.name)
         outState.putBoolean(STATE_LOCATION_PERMISSION_REQUEST_IN_FLIGHT, locationPermissionRequestInFlight)
         outState.putBoolean(STATE_LOCATION_PERMISSION_DENIED, locationPermissionDenied)
         outState.putBoolean(STATE_LOCATION_PERMISSION_PERMANENTLY_DENIED, locationPermissionPermanentlyDenied)
@@ -1816,6 +2417,7 @@ class MainActivity : ComponentActivity() {
         const val STATE_PENDING_LOCATION_ACTION = "mapfusion.pending_location_action"
         const val STATE_ROUTE_MODE = "mapfusion.route_mode"
         const val STATE_NAVIGATION_MODE = "mapfusion.navigation_mode"
+        const val STATE_TOOL_CATEGORY = "mapfusion.tool_category"
         const val STATE_LOCATION_PERMISSION_REQUEST_IN_FLIGHT = "mapfusion.location_permission_in_flight"
         const val STATE_LOCATION_PERMISSION_DENIED = "mapfusion.location_permission_denied"
         const val STATE_LOCATION_PERMISSION_PERMANENTLY_DENIED = "mapfusion.location_permission_permanently_denied"
@@ -1833,12 +2435,23 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
         )
-        val COLOR_PAGE = Color.rgb(244, 246, 248)
-        val COLOR_PANEL = Color.rgb(250, 251, 252)
-        val COLOR_BORDER = Color.rgb(216, 221, 226)
+        const val TOOL_COLUMN_COUNT = 4
+        const val TOOL_ACTION_HEIGHT_DP = 42
+        const val TOOL_ACTION_COMPACT_HEIGHT_DP = 34
+        const val TOOL_ACTION_HORIZONTAL_MARGIN_DP = 3
+        const val TOOL_ACTION_VERTICAL_MARGIN_DP = 3
+        val COLOR_PAGE = Color.rgb(244, 247, 248)
+        val COLOR_SURFACE = Color.WHITE
+        val COLOR_PANEL = Color.rgb(248, 250, 251)
+        val COLOR_BORDER = Color.rgb(210, 217, 222)
+        val COLOR_BORDER_LIGHT = Color.rgb(229, 234, 237)
+        val COLOR_MAP_PLACEHOLDER = Color.rgb(225, 231, 234)
         val COLOR_TEXT = Color.rgb(35, 39, 43)
         val COLOR_MUTED = Color.rgb(99, 107, 116)
-        val COLOR_ACCENT = Color.rgb(0, 121, 107)
+        val COLOR_ACCENT = Color.rgb(0, 105, 92)
+        val COLOR_ACCENT_DARK = Color.rgb(0, 77, 68)
+        val COLOR_ACCENT_SOFT = Color.rgb(226, 242, 239)
+        val COLOR_CONTROL_PRESSED = Color.rgb(232, 237, 239)
         val COLOR_SUCCESS = Color.rgb(46, 125, 50)
         val COLOR_ERROR = Color.rgb(198, 40, 40)
         val COLOR_ROUTE = Color.rgb(25, 118, 210)
