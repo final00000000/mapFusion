@@ -14,6 +14,7 @@ import com.mapfusion.full.MapFusionFull
 
 /** 双基础地图变体不装载厂商 Navi 原生库。 */
 internal object DemoOfficialNaviSdk {
+    /** maps 变体冷启动默认选择的厂商；只提供枚举值，不因此初始化地图或读取 Key。 */
     val defaultProvider = Provider.BAIDU
 
     /** 双地图变体允许切换任一基础地图厂商，不因此注册或初始化 SDK。 */

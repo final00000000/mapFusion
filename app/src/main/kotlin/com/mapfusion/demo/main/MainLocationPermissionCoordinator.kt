@@ -14,11 +14,23 @@ import com.mapfusion.demo.presentation.main.LocationPermissionAction
 import com.mapfusion.demo.presentation.main.MainViewModel
 
 /** 系统位置授权协调器：宿主注册结果回调，状态归 ViewModel，SDK 动作由功能控制器执行。 */
-internal class MainLocationPermissionCoordinator(private val activity: ComponentActivity,
-    private val viewModel: MainViewModel, private val messages: MainStatusReporter,
-    private val ensureConsent: () -> Boolean, private val execute: (LocationPermissionAction) -> Unit) : AutoCloseable {
+internal class MainLocationPermissionCoordinator(
+    /** 宿主 Activity；用于权限检查、设置页跳转与系统结果回调注册。 */
+    private val activity: ComponentActivity,
+    /** 页面状态所有者；申请在途标记、待续接动作和拒绝状态都由它保存。 */
+    private val viewModel: MainViewModel,
+    /** 消息入口，展示等待授权、拒绝与引导设置等提示。 */
+    private val messages: MainStatusReporter,
+    /** 最新隐私门禁；每次申请与结果回调前都重新确认，不在本地缓存决定。 */
+    private val ensureConsent: () -> Boolean,
+    /** 授权成功后的动作执行口，交回功能层执行定位、轨迹或导航。 */
+    private val execute: (LocationPermissionAction) -> Unit
+) : AutoCloseable {
+    /** 永久拒绝时展示的“前往设置”弹窗；无弹窗或已消失时为 null。 */
     private var settingsDialog: AlertDialog? = null
+    /** 是否已关闭；关闭后忽略迟到的系统授权结果并注销 launcher。 */
     private var closed = false
+    /** 系统多权限申请 launcher；回调先校验页面有效性与关闭标记再处理结果。 */
     private val launcher = activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         if (!closed && !activity.isFinishing && !activity.isDestroyed) onPermissionResult(grants)
     }
@@ -95,6 +107,7 @@ internal class MainLocationPermissionCoordinator(private val activity: Component
 
     /** Android 系统位置权限名称，不包含其他高敏权限。 */
     private companion object {
+        /** 运行时申请的位置权限集合：精确与大致二选一即可定位，不含其他高敏权限。 */
         val PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 }

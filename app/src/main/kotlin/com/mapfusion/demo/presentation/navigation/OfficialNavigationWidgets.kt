@@ -9,10 +9,23 @@ import android.widget.TextView
 import com.mapfusion.demo.DemoTheme
 
 /** 按钮的页面语义样式，集中保持开始、停止与普通控件的视觉区分。 */
-internal enum class NavigationButtonStyle { COMPACT, STANDARD, PRIMARY, DANGER }
+internal enum class NavigationButtonStyle {
+    /** 紧凑控制/选择按钮，常规字体和较小圆角，不代表业务已经启用。 */
+    COMPACT,
+    /** 标准操作按钮，粗体与较强描边，通常用于暂停/路线等动作。 */
+    STANDARD,
+    /** 主操作强调样式，品牌实心底色，用于开始等主要操作。 */
+    PRIMARY,
+    /** 危险/停止操作样式，红色文字与柔和底色，不自行触发停止。 */
+    DANGER
+}
 
 /** 页面级小控件工厂，只封装尺寸和样式；记录监听按钮以便 Activity 销毁时显式断开回调。 */
-internal class OfficialNavigationWidgets(private val context: Context) : AutoCloseable {
+internal class OfficialNavigationWidgets(
+    /** 页面 Context，仅用于密度、控件和 Drawable 创建；工厂随页面关闭，不放 VM 或全局缓存。 */
+    private val context: Context
+) : AutoCloseable {
+    /** 本工厂创建并持有点击监听的按钮列表；close 逐个解除监听后清空，不保存业务状态。 */
     private val buttons = mutableListOf<Button>()
 
     /** 输入 dp 整数，沿用导航页原有密度换算，避免拆分改变面板尺寸。 */

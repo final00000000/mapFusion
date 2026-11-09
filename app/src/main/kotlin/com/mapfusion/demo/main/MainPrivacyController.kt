@@ -8,11 +8,25 @@ import com.mapfusion.demo.presentation.main.MainMapPhase
 import com.mapfusion.demo.presentation.main.MainViewModel
 
 /** 宿主隐私流程：统一告知、持久化和撤回，不直接创建任何厂商地图。 */
-internal class MainPrivacyController(private val activity: ComponentActivity, private val viewModel: MainViewModel,
-    private val store: DemoConsentStore, private val messages: MainStatusReporter,
-    private val onEnable: () -> Unit, private val onDisable: () -> Unit,
-    private val onVendorRevoke: () -> Unit) : AutoCloseable {
+internal class MainPrivacyController(
+    /** 宿主 Activity；用于展示告知弹窗并检查页面是否仍有效。 */
+    private val activity: ComponentActivity,
+    /** 页面状态所有者；保存当前隐私决定与地图阶段，不保存告知文本。 */
+    private val viewModel: MainViewModel,
+    /** 隐私决定的共享存储；首次告知、撤回与跨页面复核都以此为准。 */
+    private val store: DemoConsentStore,
+    /** 消息入口，展示保存失败或功能不可用说明。 */
+    private val messages: MainStatusReporter,
+    /** 同意落盘后的启用回调；由页面负责创建厂商地图会话。 */
+    private val onEnable: () -> Unit,
+    /** 撤回后的停用回调；先销毁会话，再由页面渲染未启用占位。 */
+    private val onDisable: () -> Unit,
+    /** 向厂商同步撤回隐私的回调；仅在撤回保存成功后调用。 */
+    private val onVendorRevoke: () -> Unit
+) : AutoCloseable {
+    /** 当前隐私弹窗句柄；同一时刻最多一个，消失后置 null。 */
     private var dialog: AlertDialog? = null
+    /** 是否已关闭；关闭后禁止旧页面的点击回调再次启用地图。 */
     private var closed = false
 
     /** 同时检查页面决定和真实存储，避免另一个页面撤回后继续相信旧缓存。 */
@@ -99,6 +113,7 @@ internal class MainPrivacyController(private val activity: ComponentActivity, pr
 
     /** 本地告知文案，只描述服务和处理范围，不包含 Key 或用户实际位置。 */
     private companion object {
+        /** 首次告知与重新启用共用的本地说明；只描述服务范围，不含 Key 或实际位置。 */
         const val PRIVACY_NOTICE = "Map Fusion Demo 使用百度地图和高德地图服务。只有在你点击“同意并启用”后，" +
             "应用才会初始化当前选择的地图厂商 SDK。\n\n地图展示、定位、路线规划、POI、天气、内嵌导航和轨迹功能可能处理精确或大致位置信息、" +
             "设备与网络信息及服务日志，并由当前选择的地图厂商按其隐私政策处理。位置权限仍会由 Android 系统另行询问。\n\n" +

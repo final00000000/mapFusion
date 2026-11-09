@@ -14,7 +14,10 @@ import android.widget.TextView
 import com.mapfusion.demo.DemoTheme
 
 /** 首页及弹窗的小型控件工厂，只负责外观和点击绑定，不包含地图业务逻辑。 */
-internal class MainWidgets(private val context: Context) {
+internal class MainWidgets(
+    /** 创建控件所用的上下文；只读取主题资源与密度，不持有页面引用。 */
+    private val context: Context
+) {
     /** 将布局 dp 转为当前宿主像素，保持旧 Demo 的尺寸计算方式。 */
     fun dp(value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
 

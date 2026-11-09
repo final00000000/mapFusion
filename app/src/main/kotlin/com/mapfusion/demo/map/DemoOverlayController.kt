@@ -21,6 +21,7 @@ import com.mapfusion.api.model.TileOverlayOptions
 
 /** Demo 自有句柄集合；定位、导航和轨迹组件使用原始控制器，不登记在此集合。 */
 internal class DemoOverlayStore {
+    /** Demo 自有句柄的移除闭包列表；clear 先清空再逐项调用，不包含 Session 组件的资源。 */
     private val removals = mutableListOf<() -> Unit>()
     /** 登记常规覆盖物句柄并原样返回，清理时只调用它的 remove。 */
     fun <T : MapOverlay> track(overlay: T): T = overlay.also { removals += { it.remove() } }
@@ -49,7 +50,9 @@ internal class DemoOverlayStore {
 
 /** Demo 专用控制器装饰器，仅拦截新增句柄登记，其他能力全部委托原控制器。 */
 internal class DemoOverlayController(
+    /** 当前 Session 的原始控制器；装饰器只委托/登记，不拥有其生命周期或重新创建地图。 */
     private val delegate: MapController,
+    /** 本页 Demo 自有句柄集合；只登记从本装饰器返回的覆盖物，不清定位/导航/轨迹组件。 */
     private val store: DemoOverlayStore,
 ) : MapController by delegate {
     /** 创建 Marker 后登记 Demo 所有权，不替换或清除 Session 组件句柄。 */

@@ -32,11 +32,17 @@ import kotlinx.coroutines.launch
  * 明确连接原生会话生命周期；布局、渲染、事件文案、业务归约和会话操作由独立职责承接。
  */
 class OfficialNavigationActivity : ComponentActivity() {
+    /** Android 持有的导航状态所有者；只保留选择和值状态，不接收页面/原生会话引用。 */
     private val viewModel: OfficialNavigationViewModel by viewModels()
+    /** 当前页面 UI 宿主；null 表示未装配或已释放，onDestroy 先清引用再 close。 */
     private var page: OfficialNavigationPage? = null
+    /** 当前 Activity 的原生会话所有者；null 表示无宿主，onDestroy 清引用后关闭事件桥和 SDK。 */
     private var sessionHost: OfficialNavigationSessionHost? = null
+    /** 当前会话命令入口；null 表示未可用或页面已销毁，不能在重建后的页面继续复用。 */
     private var commands: OfficialNavigationCommands? = null
+    /** 精确授权后的单次续接闭包；捕获会话令牌，结果消费/销毁时置 null，不能持久化。 */
     private var permissionContinuation: (() -> Unit)? = null
+    /** 此 Activity 注册的系统位置权限启动器；回调只消费当前 VM 待办，不改厂商权限协议。 */
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { onLocationPermissionResult() }
@@ -214,12 +220,19 @@ class OfficialNavigationActivity : ComponentActivity() {
 
     /** 与首页共享的 Intent 和原生状态协议；只含常量及值对象，不保存页面或会话。 */
     companion object {
+        /** Intent 中厂商枚举 name 的旧键，不传递 MapProvider/导航器实例。 */
         private const val EXTRA_PROVIDER = "mapfusion.official_navi.provider"
+        /** 起点 extra 的旧前缀，下接 latitude、longitude、coord_type 三个值键。 */
         private const val EXTRA_ORIGIN_PREFIX = "mapfusion.official_navi.origin"
+        /** 终点 extra 的旧前缀，下接经纬度和坐标系值，保持首页跳转协议。 */
         private const val EXTRA_DESTINATION_PREFIX = "mapfusion.official_navi.destination"
+        /** Android 原生导航 Bundle 的旧恢复键，与业务选择的 SavedStateHandle 键分离。 */
         private const val STATE_NAVIGATOR = "mapfusion.official_navi.navigator"
+        /** 缺少合法入口起点时的公开演示点，坐标系 WGS84；不是设备真实定位。 */
         private val DEFAULT_ORIGIN = LatLng(39.9087, 116.3975, CoordType.WGS84)
+        /** 缺少合法入口终点时的公开演示点，坐标系 WGS84；不作为导航结果持久化。 */
         private val DEFAULT_DESTINATION = LatLng(39.9163, 116.4172, CoordType.WGS84)
+        /** 系统位置权限请求集合；真实导航仍单独要求 FINE，只有 COARSE 不足以开始真实导航。 */
         private val LOCATION_PERMISSIONS = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,

@@ -7,7 +7,10 @@ import com.mapfusion.demo.presentation.main.DemoStatusKind
 import com.mapfusion.demo.presentation.main.MainViewModel
 
 /** 业务结果到 UiState 的唯一消息入口；不直接访问 TextView 或其他视图。 */
-internal class MainStatusReporter(private val viewModel: MainViewModel) {
+internal class MainStatusReporter(
+    /** 页面状态所有者；消息以不可变快照写入 UiState，由状态收集器渲染。 */
+    private val viewModel: MainViewModel
+) {
     /** 发布过程消息，供权限等待、规划中等非最终状态使用。 */
     fun info(title: String, detail: String) = report(title, detail, DemoStatusKind.INFO)
 

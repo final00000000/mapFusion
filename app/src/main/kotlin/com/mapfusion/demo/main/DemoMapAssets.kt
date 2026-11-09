@@ -12,10 +12,15 @@ import java.io.ByteArrayOutputStream
 
 /** 演示地图样式与 PNG 生成；不依赖 Activity，不缓存原生 Bitmap。 */
 internal object DemoMapAssets {
+    /** 品牌强调色，用于文字覆盖物背景、行政区描边等强调元素。 */
     val accent = Color.rgb(0, 105, 92)
+    /** 路线与轨迹折线共用的蓝色，作为不透明 ARGB 传给 SDK。 */
     val route = Color.rgb(25, 118, 210)
+    /** 当前位置点及“我”图标使用的青绿色，与定位精度圈搭配。 */
     val current = Color.rgb(0, 121, 107)
+    /** 路线起点圆标使用的绿色。 */
     val start = Color.rgb(46, 125, 50)
+    /** 路线终点圆标使用的红色。 */
     val end = Color.rgb(198, 40, 40)
 
     /** 生成起点、终点或当前位置圆形图标，编码结束后立即回收 Bitmap。 */

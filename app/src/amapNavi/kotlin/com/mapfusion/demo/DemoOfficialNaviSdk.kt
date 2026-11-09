@@ -13,6 +13,7 @@ import com.mapfusion.api.model.OfficialNavigationCapabilities
 
 /** 高德官方导航变体入口，只装载高德兼容组合，不混入百度原生库。 */
 internal object DemoOfficialNaviSdk {
+    /** 高德 Navi 变体默认/唯一允许的地图厂商，用于规范化恢复选择，不是引擎实例。 */
     val defaultProvider = Provider.AMAP
 
     /** 限定当前变体可用地图厂商，不静默回退到未打包的 SDK。 */

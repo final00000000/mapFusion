@@ -3,7 +3,14 @@ package com.mapfusion.demo.data
 import android.content.Context
 
 /** 用户隐私决定：未选择、明确同意、明确拒绝；不等同于系统位置授权。 */
-enum class PrivacyDecision { UNDECIDED, ACCEPTED, DECLINED }
+enum class PrivacyDecision {
+    /** 尚未选择或持久值损坏/未知；不是默许同意，不能启用 SDK。 */
+    UNDECIDED,
+    /** 用户已明确同意；仍须持久保存成功及操作前复核，不等同于授予系统定位权限。 */
+    ACCEPTED,
+    /** 用户已拒绝或撤回同意；地图会话不能继续使用，应回到本地告知流程。 */
+    DECLINED
+}
 
 /** 可替换的隐私持久化边界，JVM 测试使用内存实现，不初始化 Android 或厂商 SDK。 */
 interface ConsentPersistence {
@@ -15,7 +22,10 @@ interface ConsentPersistence {
 }
 
 /** 两页共享的隐私存储，兼容旧偏好约定，保存失败不伪造已同意或已撤回。 */
-class DemoConsentStore(private val persistence: ConsentPersistence) {
+class DemoConsentStore(
+    /** 保存/读取隐私枚举名称的后端；Android 实现只保留应用级偏好，测试可替换为内存实现。 */
+    private val persistence: ConsentPersistence
+) {
     /** Android 宿主入口；持久化后端只通过 Application Context 获取偏好，不保存 Activity。 */
     constructor(context: Context) : this(PreferencesConsentPersistence(context))
 
@@ -33,6 +43,7 @@ class DemoConsentStore(private val persistence: ConsentPersistence) {
 
 /** Android 偏好后端，仅保留应用级 SharedPreferences，不引用传入的 Activity。 */
 private class PreferencesConsentPersistence(context: Context) : ConsentPersistence {
+    /** 应用私有偏好实例，使用旧文件名；只存隐私决定名称，不保存 Key、位置或 Activity。 */
     private val preferences = context.applicationContext.getSharedPreferences("mapfusion.demo.privacy", Context.MODE_PRIVATE)
 
     /** 读取旧 Demo 使用的稳定键，保持历史用户决定兼容。 */

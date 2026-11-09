@@ -26,9 +26,18 @@ internal sealed interface OfficialNavigationAction {
     /** 滑条松手后尝试把已选速度应用到运行中的模拟导航。 */
     data object ApplySpeed : OfficialNavigationAction
     /** 输入真实或模拟模式，由 ViewModel 校验能力和页面忙碌状态。 */
-    data class SelectMode(val mode: OfficialNavigationMode) : OfficialNavigationAction
+    data class SelectMode(
+        /** 用户点击的真实/模拟模式值，仅表达选择，由 VM 校验后提交，不持有导航器。 */
+        val mode: OfficialNavigationMode
+    ) : OfficialNavigationAction
     /** 输入出行方式，由 ViewModel 归一别名并校验厂商支持。 */
-    data class SelectTravel(val mode: TravelMode) : OfficialNavigationAction
+    data class SelectTravel(
+        /** 用户选择的出行方式值；骑行别名与厂商支持范围由 VM 统一规范化。 */
+        val mode: TravelMode
+    ) : OfficialNavigationAction
     /** 输入滑条速度，先保存和渲染，不在拖动过程中频繁调用引擎。 */
-    data class SelectSpeed(val kilometersPerHour: Int) : OfficialNavigationAction
+    data class SelectSpeed(
+        /** 滑条选择速度，单位 km/h；VM 限幅到 20–120，拖动本身不调用 SDK 调速。 */
+        val kilometersPerHour: Int
+    ) : OfficialNavigationAction
 }

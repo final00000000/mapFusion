@@ -13,6 +13,7 @@ import com.mapfusion.baidu.navi.BaiduNaviSdk
 
 /** 百度官方导航变体入口，只装载百度兼容组合，不混入高德原生库。 */
 internal object DemoOfficialNaviSdk {
+    /** 百度 Navi 变体默认/唯一允许的地图厂商，用于规范化恢复选择，不是引擎实例。 */
     val defaultProvider = Provider.BAIDU
 
     /** 限定当前变体可用地图厂商，不静默回退到未打包的 SDK。 */

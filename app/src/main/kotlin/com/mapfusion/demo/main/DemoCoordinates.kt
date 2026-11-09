@@ -8,7 +8,12 @@ import com.mapfusion.api.model.MapLocation
 import com.mapfusion.api.model.MapResult
 
 /** 演示坐标策略：默认点为公开示例坐标，定位值通过回调读取，不保存用户位置。 */
-internal class DemoCoordinates(private val provider: () -> Provider, private val location: () -> MapLocation?) {
+internal class DemoCoordinates(
+    /** 当前厂商提供者的惰性读取口：切换厂商后返回新值，构造时不做缓存。 */
+    private val provider: () -> Provider,
+    /** 最近一次有效定位的读取口；返回 null 表示本次页面尚未定位，不在此保存真实位置。 */
+    private val location: () -> MapLocation?
+) {
     /** 操作优先使用当前定位；没有定位时显式转换公开演示点到厂商坐标。 */
     fun center(): LatLng = location()?.position ?: defaultPoint(provider())
 

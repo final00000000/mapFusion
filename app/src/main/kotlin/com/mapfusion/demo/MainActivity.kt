@@ -28,15 +28,25 @@ import kotlinx.coroutines.launch
 
 /** 首页 Android 宿主：装配状态、视图和页面级功能，转发生命周期，不实现地图演示业务。 */
 class MainActivity : ComponentActivity() {
+    /** Android 提供的首页状态所有者；跨配置重建保留选择，不持有本 Activity 或 SDK 资源。 */
     private val viewModel: MainViewModel by viewModels()
+    /** 懒获取的共享隐私存储，内部只保留应用级偏好；每次启用操作仍复核真实落盘决定。 */
     private val consentStore by lazy { DemoConsentStore(this) }
+    /** 本 Activity 的控件树与渲染入口，由 assemblePage 初始化，随页面窗口生命周期使用。 */
     private lateinit var screen: MainScreen
+    /** 本页地图会话/请求所有者，由 assemblePage 初始化，销毁时显式 close，不注入 VM。 */
     private lateinit var mapHost: MainMapHost
+    /** 本页独立功能组合根，复用 mapHost；只装配功能，不保存可恢复业务状态。 */
     private lateinit var features: MainFeatures
+    /** 隐私告知窗口与保存/撤回协调器；页面关闭时释放窗口，不能缓存到其他 Activity。 */
     private lateinit var privacy: MainPrivacyController
+    /** 本 Activity 注册的位置授权协调器；待办归 VM，销毁时注销监听并关闭设置窗口。 */
     private lateinit var permissions: MainLocationPermissionCoordinator
+    /** 普通功能弹窗所有者；销毁时关闭全部登记窗口，避免旧页面点击回调存活。 */
     private lateinit var dialogOwner: MainDialogOwner
+    /** 首页值类型意图的路由器，在页面装配后使用，不直接拥有地图 Session 或 UI 控件。 */
     private lateinit var actions: MainActionDispatcher
+    /** 待消费的原生恢复 Bundle；默认 null，仅首建消费一次，换厂商/撤回清空，不存 VM。 */
     private var pendingMapState: Bundle? = null
 
     /** 恢复业务选择并装配页面；未同意前只显示本地占位，不创建厂商会话。 */
@@ -166,5 +176,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /** 保留已有原生状态键，避免本轮拆分改变 Activity 的恢复协议。 */
-    private companion object { const val STATE_MAP = "mapfusion.map_state" }
+    private companion object {
+        /** 原生地图 Bundle 的旧 Android 恢复键；与 SavedStateHandle 业务选择键分开。 */
+        const val STATE_MAP = "mapfusion.map_state"
+    }
 }

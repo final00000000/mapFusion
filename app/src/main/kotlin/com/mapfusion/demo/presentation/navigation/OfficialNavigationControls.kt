@@ -19,10 +19,15 @@ import com.mapfusion.demo.R
 
 /** 仅构造导航控制面板并发出意图；能力决定控件是否存在，状态/可用性由独立渲染器处理。 */
 internal class OfficialNavigationControls(
+    /** 本页控件/样式 Context，不访问引擎，不缓存到 VM 或全局对象。 */
     private val context: Context,
+    /** 当前变体能力值，用于决定模式、出行和高级按钮是否构造；不代表已完成初始化。 */
     private val capabilities: OfficialNavigationCapabilities,
+    /** 页面与渲染器共享的控件引用表；构造时填入 View，不存业务选择或 SDK 会话。 */
     private val views: OfficialNavigationViews,
+    /** 本页小控件工厂，跟踪按钮监听供关闭时解除；所有权由 Page 管理。 */
     private val widgets: OfficialNavigationWidgets,
+    /** 向 Page 发出值类型意图的回调，不直接调用 SDK；滑条仅发送用户变化和松手意图。 */
     private val emit: (OfficialNavigationAction) -> Unit,
 ) : AutoCloseable {
     /** 构造详情、模式、出行、速度、高级控制与四个操作按钮，保留原页全部功能。 */

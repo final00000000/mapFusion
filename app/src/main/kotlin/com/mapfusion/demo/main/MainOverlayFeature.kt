@@ -19,7 +19,12 @@ import com.mapfusion.api.model.PolylineOptions
 import com.mapfusion.api.model.TextOverlayOptions
 
 /** 覆盖物演示功能；所有新增句柄由 DemoOverlayController 登记，与 Session 组件隔离。 */
-internal class MainOverlayFeature(private val host: MainMapHost, private val releaseTrack: () -> Unit) {
+internal class MainOverlayFeature(
+    /** Activity 绑定的地图宿主；控制器、坐标、覆盖物登记与消息都经它访问。 */
+    private val host: MainMapHost,
+    /** 释放轨迹的互斥回调；发起导航或全局清空时先结束轨迹录制。 */
+    private val releaseTrack: () -> Unit
+) {
     /** 分发覆盖物用户意图；全局清空与普通演示替换使用不同释放规则。 */
     fun show(action: MainAction) = when (action) {
         MainAction.MULTI_POINT -> multiPoint()

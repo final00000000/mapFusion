@@ -9,7 +9,11 @@ import com.mapfusion.api.model.TrackOptions
 import com.mapfusion.api.model.TrackSnapshot
 
 /** 轨迹功能及 recorder 所有者；替换、切厂商和销毁时由地图宿主显式释放。 */
-internal class MainTrackFeature(private val host: MainMapHost) : AutoCloseable {
+internal class MainTrackFeature(
+    /** Activity 绑定的地图宿主；会话、请求代次与消息都经它统一处理。 */
+    private val host: MainMapHost
+) : AutoCloseable {
+    /** 当前轨迹录制器；本功能是唯一拥有者，替换或关闭时先置空再销毁。 */
     private var recorder: TrackRecorder? = null
 
     /** 开始新轨迹前显式停止导航与定位展示，只清 Demo 自有覆盖物。 */

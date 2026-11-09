@@ -16,14 +16,29 @@ import com.mapfusion.demo.presentation.main.DemoStatus
 import com.mapfusion.demo.presentation.main.DemoToolCategory
 
 /** 分类工具面板的视图状态持有者；只拥有控件与渲染缓存，不持有地图 Session。 */
-internal class MainToolPanel(private val context: Context, private val landscape: Boolean,
-    private val onCategory: (DemoToolCategory) -> Unit, private val onAction: (MainAction) -> Unit) {
+internal class MainToolPanel(
+    /** 构建工具面板的上下文；只读取资源与密度，不持有页面引用。 */
+    private val context: Context,
+    /** 是否横屏；决定按钮高度、结果条行数与内边距。 */
+    private val landscape: Boolean,
+    /** 分类切换意图；点击分类按钮上抛，面板本身不保存业务选择。 */
+    private val onCategory: (DemoToolCategory) -> Unit,
+    /** 功能按钮意图；只上抛 MainAction，不在视图内调用 SDK。 */
+    private val onAction: (MainAction) -> Unit
+) {
+    /** 小型控件工厂；用于统一按钮与分段样式。 */
     private val widgets = MainWidgets(context)
+    /** 分类按钮索引；用于按当前分类刷新分段选中状态。 */
     private val categories = mutableMapOf<DemoToolCategory, Button>()
+    /** 固定四列的功能按钮网格；每次分类或能力变化时重建子项。 */
     private val grid = GridLayout(context).apply { columnCount = 4; alignmentMode = GridLayout.ALIGN_MARGINS }
+    /** 上次渲染的分类；仅用于跳过重复重建，不代表业务选择的所有权。 */
     private var renderedCategory: DemoToolCategory? = null
+    /** 上次渲染时的官方导航可用性；变化时重建入口，避免残留无效按钮。 */
     private var renderedOfficialAvailability: Boolean? = null
+    /** 上次渲染的结果消息快照；相同对象时跳过文本与背景更新。 */
     private var renderedStatus: DemoStatus? = null
+    /** 结果条文本视图；横屏最多两行、竖屏三行，承载标题与详情。 */
     private val result = TextView(context).apply {
         textSize = 13f; setTextColor(DemoTheme.TEXT_SECONDARY)
         setPadding(widgets.dp(14), widgets.dp(10), widgets.dp(14), widgets.dp(10))
@@ -31,6 +46,7 @@ internal class MainToolPanel(private val context: Context, private val landscape
         maxLines = if (landscape) 2 else 3; ellipsize = TextUtils.TruncateAt.END
         minHeight = widgets.dp(if (landscape) 46 else 54)
     }
+    /** 面板根布局；竖屏为底部卡片，横屏为右侧栏。 */
     val root: LinearLayout = buildPanel()
 
     /** 构造结果条、分类选择与动态工具网格，横屏使用侧栏，竖屏使用底部卡片。 */

@@ -1,11 +1,18 @@
 package com.mapfusion.demo.navigation
 
 /** 捕获会话身份与代次的页面级令牌；即使复用同一个对象，旧代次也不能提交回调。 */
-internal data class NavigationSessionToken<T : Any>(val identity: T, val epoch: Long)
+internal data class NavigationSessionToken<T : Any>(
+    /** 捕获的会话引用，用 === 验证身份；仅供页面宿主/回调使用，不放入 VM 或恢复存储。 */
+    val identity: T,
+    /** 捕获时的代次计数，不是时间戳；同对象重新挂载后旧代次仍然无效。 */
+    val epoch: Long
+)
 
 /** 单线程会话身份栅栏；仅管理引用和代次，不调用 SDK，也不保存业务状态。 */
 internal class NavigationSessionFence<T : Any> {
+    /** 当前栅栏代次，初始 0；挂载/失效递增，用于隔离旧回调，不持久化。 */
     private var epoch = 0L
+    /** 当前受保护的会话引用；null 表示无会话，只有栅栏可更改，释放责任仍归宿主。 */
     var current: T? = null
         private set
 
@@ -39,5 +46,6 @@ internal object NavigationPollingPolicy {
     fun shouldPoll(started: Boolean, alive: Boolean, consent: Boolean, initializing: Boolean): Boolean =
         started && alive && consent && initializing
 
+    /** 初始化补偿轮询间隔，单位 ms；仅 STARTED 中的有效初始化会话使用此 150ms 间隔。 */
     const val INTERVAL_MS = 150L
 }

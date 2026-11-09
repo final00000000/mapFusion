@@ -15,7 +15,12 @@ import com.mapfusion.api.model.RouteResult
 import com.mapfusion.api.model.TravelMode
 
 /** 路线规划与轻量导航功能；不创建官方导航 UI，也不负责系统权限申请。 */
-internal class MainRouteFeature(private val host: MainMapHost, private val releaseTrack: () -> Unit) {
+internal class MainRouteFeature(
+    /** Activity 绑定的地图宿主；会话、请求代次和消息都经它统一处理。 */
+    private val host: MainMapHost,
+    /** 释放轨迹的互斥回调；发起导航前关闭轨迹录制，避免两路定位并行。 */
+    private val releaseTrack: () -> Unit
+) {
     /** 请求统一路线接口并托管同键替换，厂商不支持的出行方式明确失败。 */
     fun plan(mode: TravelMode) = host.request("${mode.displayName()}路线") { epoch ->
         val planner = requireNotNull(host.session?.routePlanner) { "当前厂商不支持路线规划" }
@@ -142,6 +147,7 @@ internal class MainRouteFeature(private val host: MainMapHost, private val relea
 
     /** 轻导航仍在占用运行资源的状态集合，不包含到达、失败或销毁。 */
     private companion object {
+        /** 视为仍占用导航资源的状态集合；到达、失败、停止与销毁不计入活跃。 */
         val ACTIVE_STATES = setOf(EmbeddedNavigationState.PLANNING, EmbeddedNavigationState.NAVIGATING,
             EmbeddedNavigationState.PAUSED, EmbeddedNavigationState.REROUTING)
     }

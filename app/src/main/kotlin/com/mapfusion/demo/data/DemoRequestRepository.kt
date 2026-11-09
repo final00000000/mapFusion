@@ -6,11 +6,17 @@ import com.mapfusion.api.model.RequestHandle
 
 /** 页面单次请求仓库：只持有句柄和代次，不保存厂商客户端、Activity 或 View。 */
 internal class DemoRequestRepository : AutoCloseable {
+    /** 托管本页单次请求句柄的 SDK 作用域；替换、会话失效或 close 时负责取消。 */
     private val scope = RequestScope()
+    /** 保护关闭标记、序号、同键 token 和会话代次的一把锁，不是 Android/厂商对象。 */
     private val lock = Any()
+    /** 业务请求键到最新监听 token 的映射；同键替换先改 token，防止旧取消回调串入。 */
     private val keys = mutableMapOf<String, Long>()
+    /** 递增的请求监听序号，初始 0；即使键相同也区分新旧监听，不是时间或会话代次。 */
     private var sequence = 0L
+    /** 仓库永久关闭标记，默认 false；close 后拒绝请求和所有迟到监听。 */
     private var closed = false
+    /** 当前页面 SDK 会话代次，初始 0；切厂商/撤回/关闭递增，仅运行态且由仓库维护。 */
     var generation: Int = 0
         private set
 

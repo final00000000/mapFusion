@@ -17,21 +17,34 @@ import com.mapfusion.demo.R
 /**
  * 页面级 UI 宿主：组装标题、原生容器和独立控制面板，连接意图与独立渲染器。
  * 可以持有页面 Context；不持有导航器，Activity 销毁时必须 close 断开所有监听。
+ * @param capabilities 当前变体能力值，只用于构造控件/纯策略，不持有原生引擎。
+ * @param onReturn 此页面返回入口，登记后由 close 清空，不能跨 Activity 复用。
  */
 internal class OfficialNavigationPage(
+    /** 本 Activity 的 UI Context，创建控件和读取尺寸/资源；随页面关闭，不放入 VM。 */
     private val context: Context,
+    /** 页面标题使用的厂商枚举值，不创建或持有厂商 MapProvider。 */
     private val provider: Provider,
     capabilities: OfficialNavigationCapabilities,
     onReturn: () -> Unit,
 ) : AutoCloseable {
+    /** 页面内控件引用表，buildContent/Controls 填充，Renderer 只更新这些已构造控件。 */
     private val views = OfficialNavigationViews()
+    /** 本页小控件与按钮监听所有者，close 时解除全部按钮回调。 */
     private val widgets = OfficialNavigationWidgets(context)
+    /** 会话宿主保护过的意图接收器；默认 null，未绑定/关闭时不发送操作，关闭后清空。 */
     private var actionListener: ((OfficialNavigationAction) -> Unit)? = null
+    /** 当前页面返回回调；close 置 null，避免已关闭控件继续结束或引用旧 Activity。 */
     private var returnListener: (() -> Unit)? = onReturn
+    /** 页面永久关闭标记，默认 false；关闭后不再渲染或发送意图。 */
     private var closed = false
+    /** 本页控制面板构造器；只发意图，页面关闭时解除速度监听，不保存业务状态。 */
     private val controls = OfficialNavigationControls(context, capabilities, views, widgets, ::emit)
+    /** 本页根 View，由 buildContent 完成控件装配；生命周期归 Activity 窗口，不全局缓存。 */
     val root: View = buildContent()
+    /** 对外提供的原生 View 容器引用；仅交给 SessionHost 挂载 SDK View，不能交给 VM。 */
     val navigatorContainer: FrameLayout get() = views.navigatorHost
+    /** 本页纯渲染入口，按 UiState/会话可用性更新控件，不订阅或读取导航器。 */
     private val renderer = OfficialNavigationRenderer(context, views, widgets, capabilities)
 
     /** 输入已由会话宿主封装身份/代次的页面回调，不让控件直接引用原生会话。 */

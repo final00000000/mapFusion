@@ -20,11 +20,17 @@ import com.mapfusion.demo.presentation.navigation.OfficialNavigationViewModel
  * 权限由 Activity 在调用 start 前处理；结果交给 ViewModel 归约，停止成功通过回调返回页面。
  */
 internal class OfficialNavigationCommands(
+    /** 本页原生会话宿主，负责实际资源/隐私/身份检查；命令层不自己创建或销毁引擎。 */
     private val host: OfficialNavigationSessionHost,
+    /** 选择与业务状态的唯一所有者，SDK 返回后只归约值，不在命令层缓存另一套状态。 */
     private val viewModel: OfficialNavigationViewModel,
+    /** 当前变体能力值快照；在发命令前过滤不支持操作，不包含原生会话。 */
     private val capabilities: OfficialNavigationCapabilities,
+    /** 进入页面时固定的请求起点值，坐标系见 coordType；不会自动跟随之后的定位更新。 */
     private val origin: LatLng,
+    /** 进入页面时固定的请求终点值，坐标系见 coordType；不保存原生路线或位置客户端。 */
     private val destination: LatLng,
+    /** 停止成功后的页面结束回调；仅在 SDK Success 时调用，不能跨 Activity 重建复用。 */
     private val onStopped: () -> Unit,
 ) {
     /** 权限请求前检查隐私和共享开始策略，不向 Activity 暴露导航器或复制业务状态。 */

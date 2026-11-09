@@ -13,7 +13,10 @@ import com.mapfusion.api.model.MarkerIcon
 import java.util.Locale
 
 /** 定位展示功能：配置连续定位并将结果写入 UiState，系统授权由宿主协调器完成。 */
-internal class MainLocationFeature(private val host: MainMapHost) {
+internal class MainLocationFeature(
+    /** Activity 绑定的地图宿主；会话守卫、请求代次与消息投递都经它完成。 */
+    private val host: MainMapHost
+) {
     /** 开启首点跟随的连续定位；复用 Session 组件，不把定位句柄保存进 ViewModel。 */
     fun start() = host.perform("定位") {
         val session = requireNotNull(host.session) { "地图尚未初始化" }

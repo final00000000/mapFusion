@@ -14,8 +14,15 @@ import com.mapfusion.demo.map.DemoMapSettingsApplier
 import com.mapfusion.demo.presentation.main.DemoMapSettings
 
 /** 地图设置、室内楼层及接入诊断弹窗；布局与地图宿主分离，不拥有原生地图会话。 */
-internal class MainMapDialogs(private val activity: ComponentActivity, private val host: MainMapHost,
-    private val owner: MainDialogOwner) {
+internal class MainMapDialogs(
+    /** 宿主 Activity；用于构建弹窗视图与读取主题资源。 */
+    private val activity: ComponentActivity,
+    /** 地图宿主；提供当前控制器、已应用设置与统一消息入口。 */
+    private val host: MainMapHost,
+    /** 页面级弹窗所有者；窗口经它登记并随页面销毁统一关闭。 */
+    private val owner: MainDialogOwner
+) {
+    /** 小型控件工厂；只创建视图与点击绑定，不参与地图业务或状态保存。 */
     private val widgets = MainWidgets(activity)
 
     /** 创建厂商能力驱动的设置草稿，只有应用按钮才将设置提交给 SDK。 */

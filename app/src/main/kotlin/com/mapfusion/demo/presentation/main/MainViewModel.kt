@@ -12,7 +12,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** 首页状态归约器：保存选择与权限流程，不持有 Activity、Context、View 或地图会话。 */
-internal class MainViewModel(private val savedState: SavedStateHandle) : ViewModel() {
+internal class MainViewModel(
+    /** Android 业务恢复容器；只保存选择/设置与权限待办，不写地图、定位或导航运行态。 */
+    private val savedState: SavedStateHandle
+) : ViewModel() {
+    /** VM 内部唯一可写快照流；初始恢复业务选择，修改统一经过 update 持久化可恢复字段。 */
     private val mutableState = MutableStateFlow(MainUiState(
         preferredProvider = enumOrDefault(savedState[PROVIDER], Provider.BAIDU),
         routeMode = enumOrDefault(savedState[ROUTE_MODE], TravelMode.DRIVING),
@@ -26,6 +30,7 @@ internal class MainViewModel(private val savedState: SavedStateHandle) : ViewMod
         permissionDenied = savedState[PERMISSION_DENIED] ?: false,
         permissionPermanentlyDenied = savedState[PERMISSION_PERMANENT] ?: false,
     ))
+    /** 暴露给页面的只读状态流；Activity 在 STARTED 收集，不能从视图直接改内部状态。 */
     val state: StateFlow<MainUiState> = mutableState.asStateFlow()
 
     /** 原子替换页面快照，并只持久化可恢复字段；运行态不写入 SavedStateHandle。 */
@@ -112,14 +117,23 @@ internal class MainViewModel(private val savedState: SavedStateHandle) : ViewMod
 
     /** 恢复键保留旧约定，避免此次职责拆分破坏已保存的用户选择。 */
     internal companion object {
+        /** 厂商枚举 name 的旧恢复键，不保存 MapProvider 实例。 */
         const val PROVIDER = "main.provider"
+        /** 路线出行方式枚举 name 的旧恢复键，不保存规划结果。 */
         const val ROUTE_MODE = "main.routeMode"
+        /** 轻导航真实/模拟模式枚举 name 的旧恢复键，不保存活跃导航组件。 */
         const val NAVIGATION_MODE = "main.navigationMode"
+        /** 工具分类枚举 name 的旧恢复键，保留重建前所选面板。 */
         const val TOOL_CATEGORY = "main.toolCategory"
+        /** 全部地图设置编码字符串的旧恢复键，编码顺序由 DemoMapSettings 维护。 */
         const val MAP_SETTINGS = "main.mapSettings"
+        /** 待授权动作枚举 name 的旧恢复键；null 表示没有待办，不保存点击闭包。 */
         const val PENDING_ACTION = "main.pendingAction"
+        /** 系统权限请求在途标记的旧恢复键，用于重建后避免重复发起授权。 */
         const val PERMISSION_IN_FLIGHT = "main.permissionInFlight"
+        /** 最近位置授权拒绝标记的旧恢复键，不代替实际权限检查。 */
         const val PERMISSION_DENIED = "main.permissionDenied"
+        /** 需引导系统应用设置的拒绝标记旧恢复键，不表示隐私同意被拒绝。 */
         const val PERMISSION_PERMANENT = "main.permissionPermanent"
     }
 }

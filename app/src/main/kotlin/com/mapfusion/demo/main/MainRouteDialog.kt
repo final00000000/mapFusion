@@ -10,9 +10,19 @@ import com.mapfusion.demo.DemoTheme
 import com.mapfusion.demo.R
 
 /** 路线选择弹窗：只收集模式和用户意图，授权及 SDK 调用由宿主与功能控制器负责。 */
-internal class MainRouteDialog(private val activity: ComponentActivity, private val host: MainMapHost,
-    private val owner: MainDialogOwner, private val route: MainRouteFeature,
-    private val onNavigate: (TravelMode, EmbeddedNavigationMode) -> Unit) {
+internal class MainRouteDialog(
+    /** 宿主 Activity；用于构建弹窗控件与读取字符串资源。 */
+    private val activity: ComponentActivity,
+    /** 地图宿主；提供已提交的路线选择与统一消息入口。 */
+    private val host: MainMapHost,
+    /** 页面级弹窗所有者；窗口随页面销毁统一关闭。 */
+    private val owner: MainDialogOwner,
+    /** 路线与导航功能；规划、暂停、继续和停止都委托给它。 */
+    private val route: MainRouteFeature,
+    /** 用户确认“发起导航”后的回调；把出行方式与导航模式交给权限流程。 */
+    private val onNavigate: (TravelMode, EmbeddedNavigationMode) -> Unit
+) {
+    /** 小型控件工厂；只创建弹窗控件与点击绑定，不保存业务选择。 */
     private val widgets = MainWidgets(activity)
 
     /** 创建局部选择器，取消不写状态；规划与开始导航分别提交各自需要的选择。 */

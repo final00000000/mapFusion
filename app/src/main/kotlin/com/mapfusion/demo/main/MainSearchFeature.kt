@@ -19,7 +19,10 @@ import com.mapfusion.api.model.WeatherNow
 import com.mapfusion.api.model.WeatherRequest
 
 /** 单次查询功能：统一请求托管与成功结果展示，不负责权限弹窗或 Session 生命周期。 */
-internal class MainSearchFeature(private val host: MainMapHost) {
+internal class MainSearchFeature(
+    /** Activity 绑定的地图宿主；会话组件、坐标与统一请求守卫都经它访问。 */
+    private val host: MainMapHost
+) {
     /** 解析公开示例地址，并只替换 Demo 结果 Marker，不清除导航或轨迹句柄。 */
     fun geocode() = execute("geocode", "地址解析", { callback ->
         requireNotNull(host.session?.geocoder) { "当前厂商不支持地理编码" }

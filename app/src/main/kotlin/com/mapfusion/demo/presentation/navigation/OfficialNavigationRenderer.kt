@@ -10,9 +10,13 @@ import com.mapfusion.demo.StatusTone
 
 /** 仅把不可变业务快照渲染到已有控件；不创建布局、不订阅引擎、不处理用户命令。 */
 internal class OfficialNavigationRenderer(
+    /** 页面资源/密度 Context，仅用于格式资源与 Drawable，不放入状态流。 */
     private val context: Context,
+    /** 当前页面已初始化的控件引用表；渲染器不构造整页、不保存业务状态副本。 */
     private val views: OfficialNavigationViews,
+    /** 页面级样式工厂，用于选中/禁用外观；监听和关闭责任仍归 Page。 */
     private val widgets: OfficialNavigationWidgets,
+    /** 当前变体能力值，和 UiState 一起交给 ControlPolicy，不是原生引擎引用。 */
     private val capabilities: OfficialNavigationCapabilities,
 ) {
     /** 输入状态与宿主会话可用性，所有展示和控件门禁由该快照推导，不直接读取导航器。 */

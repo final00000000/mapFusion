@@ -27,24 +27,45 @@ import com.mapfusion.factory.MapFusionSession
 import java.util.Locale
 
 /** Activity 绑定的地图资源宿主：统一会话创建、切换、释放和异步投递守卫，不拥有页面布局。 */
-internal class MainMapHost(private val activity: ComponentActivity, val viewModel: MainViewModel,
-    private val container: FrameLayout, private val consent: DemoConsentStore,
-    private val ensureConsent: () -> Boolean) : AutoCloseable {
+internal class MainMapHost(
+    /** 宿主 Activity；地图 View 挂载、生命周期转发与主线程投递都依赖它。 */
+    private val activity: ComponentActivity,
+    /** 页面状态所有者；选择可恢复，地图阶段/最近定位只属当前运行态，不保存原生句柄。 */
+    val viewModel: MainViewModel,
+    /** 原生地图 View 的挂载容器；切换会话时先移除旧 View 再挂载新 View。 */
+    private val container: FrameLayout,
+    /** 隐私决定的共享持久化存储；用于跨页面复核真实同意状态。 */
+    private val consent: DemoConsentStore,
+    /** 隐私门禁；创建会话和发起动作前都必须返回 true。 */
+    private val ensureConsent: () -> Boolean
+) : AutoCloseable {
+    /** 唯一消息出口；将业务结果写入 UiState，不直接操作视图。 */
     val messages = MainStatusReporter(viewModel)
+    /** 单次请求仓库；负责同键替换、请求代次与会话失效。 */
     val requests = DemoRequestRepository()
+    /** Demo 自有覆盖物句柄登记表；与会话原生资源分离，可单独清理。 */
     val overlays = DemoOverlayStore()
+    /** 坐标策略；优先读取最近定位，未定位时使用公开示例点并转换厂商坐标系。 */
     val coordinates = DemoCoordinates({ provider?.provider ?: viewModel.state.value.preferredProvider },
         { viewModel.state.value.lastLocation })
+    /** 当前会话所属厂商；仅在会话有效期间非空，释放或初始化失败后置 null。 */
     var provider: MapProvider? = null
         private set
+    /** 当前地图控制器；由演示覆盖物控制器包装，随会话创建与释放。 */
     var controller: MapController? = null
         private set
+    /** 当前地图会话；原生资源的唯一所有者，必须经 releaseSession 销毁。 */
     var session: MapFusionSession? = null
         private set
+    /** 引用/代次失效后、旧 SDK 资源销毁前的回调；供功能释放轨迹自有句柄，默认空实现。 */
     var beforeSessionRelease: () -> Unit = {}
+    /** 地图就绪后的回调；由页面在容器 post 后执行，避免创建过程中操作 View。 */
     var onReady: () -> Unit = {}
+    /** 本宿主是否已调用工厂安装，默认 false；用于避免重复安装/决定撤回同步，不代表 SDK 就绪。 */
     private var factoriesRegistered = false
+    /** 页面是否处于前台；晚创建的会话据此补发 onResume。 */
     private var resumed = false
+    /** 是否永久关闭；关闭后拒绝新动作与迟到投递，不可逆。 */
     private var closed = false
 
     /** 获取当前密度下的布局像素，供地图视野 padding 和定位样式使用。 */

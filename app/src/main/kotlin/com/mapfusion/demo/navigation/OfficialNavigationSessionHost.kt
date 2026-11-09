@@ -26,17 +26,28 @@ import com.mapfusion.demo.presentation.navigation.OfficialNavigationViewModel
  * 可持有 Activity 和原生 View，但不复制业务状态；Activity 必须转发生命周期并显式 close。
  */
 internal class OfficialNavigationSessionHost(
+    /** 当前 Android 页面，供原生 View/生命周期和 UI 线程投递使用；只在本宿主生命周期内持有。 */
     private val activity: ComponentActivity,
+    /** 此页面校验过的厂商枚举值，整个宿主固定；不是实际 MapProvider 或原生引擎引用。 */
     private val provider: Provider,
+    /** 本页原生导航 View 容器；挂载与释放时分离 SDK View，不存入 VM 或全局缓存。 */
     private val container: FrameLayout,
+    /** 统一值状态的接收者；宿主只交引擎快照/事件，不能把自身或会话注入其中。 */
     private val viewModel: OfficialNavigationViewModel,
 ) : AutoCloseable {
+    /** 应用级共享隐私存储，操作/事件/前台恢复前重新读取，不能只相信缓存标记。 */
     private val consentStore = DemoConsentStore(activity)
+    /** 当前导航器引用和代次的唯一栅栏；先 invalidate 再 stop/destroy，拒绝旧会话尾事件。 */
     private val fence = NavigationSessionFence<OfficialNavigator>()
+    /** 主线程投递与初始化补偿调度器；释放时移除本宿主全部排队任务。 */
     private val handler = Handler(Looper.getMainLooper())
+    /** 当前初始化轮询任务，null 表示未安排；停止/释放清空，只在 STARTED 初始化期创建。 */
     private var poll: Runnable? = null
+    /** 宿主 onStart/onStop 标记，默认 false；还须结合 Android 生命周期，不能单独允许轮询。 */
     private var started = false
+    /** 跨线程可见的永久关闭标记，默认 false；close 后拒绝新操作、事件和轮询。 */
     @Volatile private var closed = false
+    /** 最近一次存储复核的同意结果，默认 false，仅用于轮询门禁；ensureConsent 每次重新读取。 */
     private var consentGranted = false
     /** 会话可用性仅供 UI 策略输入，不把原生引用暴露给 ViewModel。 */
     val sessionAvailable: Boolean get() = !closed && fence.current != null

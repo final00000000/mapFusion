@@ -18,11 +18,19 @@ import kotlinx.coroutines.flow.asStateFlow
  * 仅选择写入 SavedStateHandle，不持有 Activity、Context、View、导航器或会话。
  * 新宿主必须重置运行期状态，不能把恢复的旧导航状态当成新会话的实际状态。
  */
-internal class OfficialNavigationViewModel(private val savedState: SavedStateHandle) : ViewModel() {
+internal class OfficialNavigationViewModel(
+    /** 保存导航模式、出行、速度、语音与配色选择的恢复容器，不存原生会话或路线运行态。 */
+    private val savedState: SavedStateHandle
+) : ViewModel() {
+    /** 当前变体允许的真实/模拟模式值集合；null 表示尚未配置，配置时复制且不持久化能力。 */
     private var supportedModes: Set<OfficialNavigationMode>? = null
+    /** 当前变体允许的规范化出行方式值集合；null 表示尚未配置，不持有厂商对象。 */
     private var supportedTravelModes: Set<TravelMode>? = null
+    /** 是否已输入变体能力，默认 false；只控制 sanitize 能力规范化，不代表引擎初始化成功。 */
     private var capabilitiesConfigured = false
+    /** VM 内部唯一可写状态流；初始只恢复选择，运行字段由新宿主/统一事件重新产生。 */
     private val mutableState = MutableStateFlow(readInitialState())
+    /** 页面只读快照流，供生命周期内单向渲染；外部不能直接写 MutableStateFlow。 */
     val state: StateFlow<OfficialNavigationUiState> = mutableState.asStateFlow()
 
     /** 读取可恢复选择，非法枚举回退默认值；速度先以宽整数限幅，避免进程恢复时溢出。 */
@@ -276,10 +284,15 @@ internal class OfficialNavigationViewModel(private val savedState: SavedStateHan
 
     /** 选择项保存协议，保持旧版本键名以兼容已存在的 Activity 恢复状态。 */
     internal companion object {
+        /** 真实/模拟模式枚举 name 的旧恢复键，不保存导航启动状态。 */
         const val KEY_NAVIGATION_MODE = "officialNavigation.mode"
+        /** 规范化出行方式枚举 name 的旧恢复键，不保存原生请求或路线。 */
         const val KEY_TRAVEL_MODE = "officialNavigation.travelMode"
+        /** 模拟速度选择的旧恢复键，值单位 km/h；读取时先宽整数限幅再转 Int。 */
         const val KEY_SIMULATION_SPEED = "officialNavigation.simulationSpeed"
+        /** 语音启用选择的旧恢复键，不保存 TTS 引擎或语音资源。 */
         const val KEY_VOICE_GUIDANCE = "officialNavigation.voiceGuidance"
+        /** 自动/白天/夜间配色枚举 name 的旧恢复键，不保存原生 View 样式对象。 */
         const val KEY_DAY_NIGHT_MODE = "officialNavigation.dayNightMode"
     }
 }

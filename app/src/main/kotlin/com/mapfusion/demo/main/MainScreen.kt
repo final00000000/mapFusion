@@ -21,20 +21,41 @@ import com.mapfusion.demo.presentation.main.DemoToolCategory
 import com.mapfusion.demo.presentation.main.MainMapPhase
 import com.mapfusion.demo.presentation.main.MainUiState
 
-/** 首页屏幕：组合地图容器、头部与工具面板，仅通过 UiState 渲染页面。 */
-internal class MainScreen(private val context: Context, private val supportedProviders: Set<Provider>,
-    private val onProvider: (Provider) -> Unit, onCategory: (DemoToolCategory) -> Unit,
-    onAction: (MainAction) -> Unit, private val onPrivacy: () -> Unit) {
+/** 首页屏幕：组合地图容器、头部与工具面板，仅通过 UiState 渲染页面。
+ *
+ * @param onCategory 点击工具分类时上抛的分类意图，只切换按钮网格，不调用 SDK。
+ * @param onAction 点击具体功能按钮时上抛的 MainAction，由分发器路由到功能层。
+ */
+internal class MainScreen(
+    /** 视图上下文；只读取资源与密度，不注册任何页面回调。 */
+    private val context: Context,
+    /** 当前变体支持的厂商集合；顶部只显示可用按钮，避免入口指向未装载的 SDK。 */
+    private val supportedProviders: Set<Provider>,
+    /** 厂商切换意图；点击按钮上抛，实际会话切换由宿主完成。 */
+    private val onProvider: (Provider) -> Unit,
+    onCategory: (DemoToolCategory) -> Unit,
+    onAction: (MainAction) -> Unit,
+    /** 隐私入口意图；点击顶部“隐私”按钮时上抛。 */
+    private val onPrivacy: () -> Unit
+) {
+    /** 小型控件工厂；只创建视图与点击绑定，不保存业务状态。 */
     private val widgets = MainWidgets(context)
+    /** 是否横屏；决定地图与工具面板的左右分栏还是上下布局。 */
     private val landscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    /** 头部第二行的厂商状态文本；随地图阶段与能力数量刷新。 */
     private val providerStatus = TextView(context).apply {
         textSize = 11.5f; setTextColor(DemoTheme.TEXT_SECONDARY); maxLines = 1
         ellipsize = TextUtils.TruncateAt.END; includeFontPadding = false
     }
+    /** 已创建的厂商切换按钮索引；用于按当前状态刷新选中样式。 */
     private val providerButtons = mutableMapOf<Provider, Button>()
+    /** 分类与功能按钮面板；持有控件和渲染缓存，不拥有地图会话。 */
     private val tools = MainToolPanel(context, landscape, onCategory, onAction)
+    /** 上一次渲染的地图阶段；仅在进入未启用阶段时重建占位卡片。 */
     private var renderedPhase: MainMapPhase? = null
+    /** 地图挂载容器；宿主把原生地图 View 添加到这里，页面不直接创建地图。 */
     val mapContainer = FrameLayout(context).apply { setBackgroundColor(DemoTheme.MAP_PLACEHOLDER) }
+    /** 页面根视图；包含头部、地图与工具面板，仅构建一次。 */
     val root: View = buildContent()
 
     /** 构造横竖屏布局并应用系统窗口边距，不访问任何地图 SDK。 */
