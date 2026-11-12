@@ -48,7 +48,8 @@ internal class MainOverlayFeature(
         controller.moveCamera(CameraUpdate(target = center,
             zoom = if (action in setOf(MainAction.MARKER, MainAction.TEXT, MainAction.GROUND)) 16f else 14f))
         when (action) {
-            MainAction.MARKER -> controller.addMarker(MarkerOptions(center, "Map Fusion", "统一 Marker", draggable = true))
+            MainAction.MARKER -> controller.addMarker(MarkerOptions(center, "Map Fusion", "统一 Marker",
+                icon = DemoMapAssets.defaultPinIcon, anchorU = 0.5f, anchorV = 1.0f, draggable = true))
             MainAction.POLYLINE -> controller.addPolyline(PolylineOptions(listOf(west, center, east), width = 14f,
                 color = DemoMapAssets.route, clickable = true))
             MainAction.POLYGON -> controller.addPolygon(PolygonOptions(listOf(center, east, north),

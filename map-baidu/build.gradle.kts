@@ -1,42 +1,27 @@
-// 百度地图适配器:实现 map-api 的各能力接口,把百度原生 SDK 翻译成统一模型。
-// 第二阶段接入百度真实 SDK，把原生能力翻译成统一模型。
+// ==============================================================================
+// map-baidu：百度地图基础适配器模块
+// 职责：实现 :map-api 定义的地图渲染、覆盖物、定位、POI、地理编码、路线、行政区与天气接口。
+// 依赖说明：
+// 1. 组合引入百度官方 Map、Search 与 Location_All 稳定版本。
+// 2. 百度 Location 9.6.8 的国际/HTTPDNS 路径直接调用 OkHttp，但官方 POM 未传递该依赖；
+//    使用 runtimeOnly(libs.okhttp) 注入，既不泄漏到公开 API，又保证 R8 混淆与运行期路径完整。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.baidu"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
     api(project(":map-api"))
-    implementation("androidx.core:core-ktx:1.17.0")
-    testImplementation("junit:junit:4.13.2")
+    api(libs.baidu.map)
+    api(libs.baidu.search)
+    api(libs.baidu.location)
+    // 百度定位 SDK 运行时网络与 HTTPDNS 依赖 OkHttp 4.x。
+    runtimeOnly(libs.okhttp)
 
-    // 版本核对日期：2026-07-17。
-    // BaiduNativeAccess 的公开签名直接返回原生类型，消费者编译期必须可见这些依赖。
-    api("com.baidu.lbsyun:BaiduMapSDK_Map:8.2.0")
-    api("com.baidu.lbsyun:BaiduMapSDK_Location_All:9.6.8")
-    api("com.baidu.lbsyun:BaiduMapSDK_Search:8.2.0")
-    // 百度 Location 9.6.8 的国际/HTTPDNS 路径直接调用 OkHttp，但官方 POM 未传递它。
-    // 作为 runtime 依赖发布，既不污染本模块公开 API，也避免 R8 将该路径裁成不可达。
-    runtimeOnly("com.squareup.okhttp3:okhttp:4.12.0")
-    // 若需要百度原生导航，用 BaiduMapSDK_Map-AllNavi:8.2.0 替换 Map，勿重复引入两种地图包。
+    testImplementation(libs.junit)
 }

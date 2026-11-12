@@ -1,40 +1,25 @@
-// 高德地图适配器:实现 map-api 的各能力接口,把高德原生 SDK 翻译成统一模型。
-// 第二阶段接入高德真实 SDK，把原生能力翻译成统一模型。
+// ==============================================================================
+// map-amap：高德地图基础适配器模块
+// 职责：实现 :map-api 定义的地图渲染、覆盖物、定位、POI、地理编码、路线、行政区与天气接口。
+// 依赖说明：
+// 1. 使用高德官方 3dmap-location-search 合包，避免 3D 地图、定位与搜索版本不一致引起的符号冲突。
+// 2. 组合包内部定位算法直接调用 FastMath，但官方 POM 未声明传递依赖，故显式补充 runtimeOnly(libs.jafama)。
+// 3. 若宿主同时需要高德官方导航，应使用 :map-amap-navi 模块替代本模块中的基础合包。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.amap"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
     api(project(":map-api"))
-    implementation("androidx.core:core-ktx:1.17.0")
-    testImplementation("junit:junit:4.13.2")
+    api(libs.amap.map.location.search)
+    // 高德组合包的定位算法直接引用 FastMath，作为 runtimeOnly 注入避免污染公开 API。
+    runtimeOnly(libs.jafama)
 
-    // 版本核对日期：2026-07-17。
-    // 高德各独立包包含重复基础类，必须使用官方组合包保证版本兼容。
-    // AmapNativeAccess 的公开签名直接返回原生类型，消费者编译期必须可见组合包。
-    api("com.amap.api:3dmap-location-search:11.2.000_loc11.2.000_sea9.8.0")
-    // 组合包的定位算法直接引用 FastMath，但官方 POM 未传递该小型运行时依赖。
-    runtimeOnly("net.jafama:jafama:2.3.2")
-    // 若需要高德原生导航，改用 navi-3dmap-location-search 对应组合包，勿与本包重复引入。
+    testImplementation(libs.junit)
 }

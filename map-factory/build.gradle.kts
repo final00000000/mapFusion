@@ -1,33 +1,21 @@
-// 工厂/注册表:按 MapConfig(provider + apiKey) 返回对应适配器实现。
-// 只依赖抽象层;适配器通过运行时注册表可插拔接入,不硬编译依赖各厂商模块。
+// ==============================================================================
+// map-factory：工厂、注册表与会话编排层
+// 职责：提供 ProviderRegistry 动态注册表、MapFusionSession 生命周期托管，以及基于统一接口的
+//      定位图层展示 (DefaultLocationDisplay)、轻量内嵌导航 (DefaultEmbeddedNavigator) 与轨迹录制。
+// 约束：仅依赖 :map-api 抽象层，不硬编码编译依赖任何具体厂商适配器模块。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.factory"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
     api(project(":map-api"))
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation(libs.androidx.core.ktx)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
 }

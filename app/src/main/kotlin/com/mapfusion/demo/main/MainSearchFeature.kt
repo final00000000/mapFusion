@@ -29,7 +29,9 @@ internal class MainSearchFeature(
             .geocode(GeocodeRequest(address = "天安门", city = "北京"), callback)
     }) { result ->
         host.controller?.apply {
-            host.overlays.clear(); addMarker(MarkerOptions(result.location, "天安门", result.formattedAddress))
+            host.overlays.clear()
+            addMarker(MarkerOptions(result.location, "天安门", result.formattedAddress,
+                icon = DemoMapAssets.poiPinIcon, anchorU = 0.5f, anchorV = 1.0f))
             moveCamera(CameraUpdate(target = result.location, zoom = 17f))
         }
         host.messages.success("地址解析成功", result.formattedAddress ?: result.location.toString())
@@ -55,8 +57,13 @@ internal class MainSearchFeature(
     private fun showPoi(center: com.mapfusion.api.model.LatLng, result: PoiSearchResult) {
         val items = result.items.take(12)
         host.controller?.apply {
-            host.overlays.clear(); addMarker(MarkerOptions(center, "搜索中心", zIndex = 30f))
-            items.forEach { addMarker(MarkerOptions(it.location, it.name, it.address, zIndex = 10f)) }
+            host.overlays.clear()
+            addMarker(MarkerOptions(center, "搜索中心", icon = DemoMapAssets.defaultPinIcon,
+                anchorU = 0.5f, anchorV = 1.0f, zIndex = 30f))
+            items.forEach {
+                addMarker(MarkerOptions(it.location, it.name, it.address,
+                    icon = DemoMapAssets.poiPinIcon, anchorU = 0.5f, anchorV = 1.0f, zIndex = 10f))
+            }
             fitPoints(listOf(center) + items.map { it.location }, paddingPixels = host.dp(56))
         }
         host.messages.success("POI 搜索成功 · ${result.items.size}/${result.totalCount}",

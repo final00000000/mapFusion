@@ -1,11 +1,9 @@
 package com.mapfusion.demo.main
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Typeface
 import android.text.TextUtils
 import android.view.Gravity
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.GridLayout
 import android.widget.LinearLayout
@@ -38,31 +36,36 @@ internal class MainToolPanel(
     private var renderedOfficialAvailability: Boolean? = null
     /** 上次渲染的结果消息快照；相同对象时跳过文本与背景更新。 */
     private var renderedStatus: DemoStatus? = null
-    /** 结果条文本视图；横屏最多两行、竖屏三行，承载标题与详情。 */
+    /** 结果条文本视图；横屏最多两行、竖屏三行，承载状态标签、标题与详情。 */
     private val result = TextView(context).apply {
-        textSize = 13f; setTextColor(DemoTheme.TEXT_SECONDARY)
+        textSize = 12.5f; setTextColor(DemoTheme.TEXT_SECONDARY)
         setPadding(widgets.dp(14), widgets.dp(10), widgets.dp(14), widgets.dp(10))
-        gravity = Gravity.CENTER_VERTICAL; setLineSpacing(widgets.dp(2).toFloat(), 1f)
+        gravity = Gravity.CENTER_VERTICAL; setLineSpacing(widgets.dp(3).toFloat(), 1f)
         maxLines = if (landscape) 2 else 3; ellipsize = TextUtils.TruncateAt.END
-        minHeight = widgets.dp(if (landscape) 46 else 54)
+        minHeight = widgets.dp(if (landscape) 46 else 52)
     }
-    /** 面板根布局；竖屏为底部卡片，横屏为右侧栏。 */
+    /** 面板根布局；作为悬浮卡片展示在地图上方。 */
     val root: LinearLayout = buildPanel()
 
-    /** 构造结果条、分类选择与动态工具网格，横屏使用侧栏，竖屏使用底部卡片。 */
+    /** 构造悬浮卡片面板，包含拖柄、状态横幅、分段分类栏与四列功能网格。 */
     private fun buildPanel(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(widgets.dp(12), widgets.dp(if (landscape) 6 else 8), widgets.dp(12), widgets.dp(if (landscape) 8 else 12))
-        background = if (landscape) DemoTheme.roundedRect(context, DemoTheme.SURFACE, cornerDp = 0f)
-            else DemoTheme.topSheetBackground(context)
-        elevation = widgets.dp(8).toFloat()
+        isClickable = true
+        isFocusable = true
+        setOnTouchListener { _, _ -> true }
+        val hPad = widgets.dp(12)
+        val topPad = widgets.dp(if (landscape) 10 else 8)
+        val botPad = widgets.dp(if (landscape) 10 else 12)
+        setPadding(hPad, topPad, hPad, botPad)
+        background = DemoTheme.floatingCardBackground(context, DemoTheme.SURFACE_GLASS, DemoTheme.BORDER, 22f)
+        elevation = widgets.dp(12).toFloat()
         if (!landscape) addView(DemoTheme.buildSheetHandle(context),
-            LinearLayout.LayoutParams(-1, widgets.dp(10)).apply { bottomMargin = widgets.dp(4) })
-        addView(result, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = widgets.dp(if (landscape) 6 else 10) })
+            LinearLayout.LayoutParams(-1, widgets.dp(12)).apply { bottomMargin = widgets.dp(4) })
+        addView(result, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = widgets.dp(if (landscape) 6 else 8) })
         addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
             setPadding(widgets.dp(4), widgets.dp(4), widgets.dp(4), widgets.dp(4))
-            background = DemoTheme.roundedRect(context, DemoTheme.SURFACE_SUBTLE, DemoTheme.BORDER, 12f)
+            background = DemoTheme.roundedRect(context, DemoTheme.SURFACE_SUBTLE, DemoTheme.BORDER, 14f)
             DemoToolCategory.entries.forEachIndexed { index, category ->
                 val button = widgets.button(category.title) { onCategory(category) }
                 categories[category] = button
@@ -81,9 +84,9 @@ internal class MainToolPanel(
         categories.forEach { (item, button) -> widgets.styleSegment(button, item == category, category = true) }
         val actions = MainActionCatalog.actions(category, officialAvailable)
         val rows = MainActionCatalog.rowCount(actions.size)
-        val height = if (landscape) 34 else 42
+        val height = if (landscape) 36 else 42
         grid.removeAllViews(); grid.rowCount = rows
-        grid.layoutParams = LinearLayout.LayoutParams(-1, widgets.dp(rows * (height + 6)))
+        grid.layoutParams = LinearLayout.LayoutParams(-1, widgets.dp(rows * (height + 7)))
         actions.forEachIndexed { index, action ->
             grid.addView(actionButton(action), GridLayout.LayoutParams(
                 GridLayout.spec(index / 4), GridLayout.spec(index % 4, 1, 1f)).apply {
@@ -99,12 +102,13 @@ internal class MainToolPanel(
         renderedStatus = status
         val tone = StatusTone.valueOf(status.kind.name)
         result.text = DemoTheme.formatStatusText(status.title, status.detail, tone)
-        result.background = DemoTheme.roundedRect(context, tone.cardBgColor, tone.cardBorderColor, 12f)
+        result.background = DemoTheme.roundedRect(context, tone.cardBgColor, tone.cardBorderColor, 14f)
     }
 
     /** 把纯功能描述转成按钮；点击只发出 MainAction，不在视图内执行 SDK 请求。 */
     private fun actionButton(action: MainActionSpec): Button = widgets.button(action.title) { onAction(action.action) }.apply {
         maxLines = 1; ellipsize = TextUtils.TruncateAt.END; gravity = Gravity.CENTER
+        textSize = 12.5f
         typeface = if (action.style == MainActionStyle.DEFAULT) Typeface.DEFAULT else Typeface.DEFAULT_BOLD
         val colors = when (action.style) {
             MainActionStyle.DEFAULT -> Triple(DemoTheme.TEXT_PRIMARY, DemoTheme.SURFACE_ELEVATED, DemoTheme.BORDER)
@@ -112,6 +116,6 @@ internal class MainToolPanel(
             MainActionStyle.DANGER -> Triple(DemoTheme.ERROR, DemoTheme.ERROR_SOFT, DemoTheme.ERROR_BORDER)
         }
         setTextColor(colors.first)
-        background = DemoTheme.interactiveSurface(context, colors.second, DemoTheme.SURFACE_PRESSED, colors.third, 11f)
+        background = DemoTheme.interactiveSurface(context, colors.second, DemoTheme.SURFACE_PRESSED, colors.third, 12f)
     }
 }

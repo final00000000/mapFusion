@@ -52,6 +52,11 @@ class MainActivity : ComponentActivity() {
     /** 恢复业务选择并装配页面；未同意前只显示本地占位，不创建厂商会话。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
         val supported = Provider.entries.filter(DemoOfficialNaviSdk::supportsMapProvider).toSet()
         viewModel.configureProviders(DemoOfficialNaviSdk.defaultProvider, supported)
         viewModel.resetSessionState()
@@ -84,7 +89,10 @@ class MainActivity : ComponentActivity() {
         actions = MainActionDispatcher(features, requestLocation = { permissions.request(it, fromUser = true) },
             showMapSettings = mapDialogs::settings, showRouteOptions = routeDialog::show,
             openOfficialNavigation = ::openOfficialNavigation)
-        mapHost.onReady = { permissions.request(LocationPermissionAction.LOCATE, fromUser = false) }
+        mapHost.onReady = {
+            if (permissions.hasPermission()) features.location.start(followCamera = false)
+            else permissions.request(LocationPermissionAction.LOCATE, fromUser = false)
+        }
     }
 
     /** 页面 STARTED 内单向收集 UiState，停止后不继续访问已不可见的控件。 */

@@ -2,6 +2,8 @@ package com.mapfusion.demo.main
 
 import com.mapfusion.api.capability.Provider
 import com.mapfusion.api.coordinate.DefaultCoordinateConverter
+import com.mapfusion.api.model.CameraPosition
+import com.mapfusion.api.model.CameraUpdate
 import com.mapfusion.api.model.CoordType
 import com.mapfusion.api.model.LatLng
 import com.mapfusion.api.model.MapLocation
@@ -24,6 +26,18 @@ internal class DemoCoordinates(
     fun destination(origin: LatLng): LatLng = if (location() != null)
         LatLng(origin.latitude + 0.012, origin.longitude + 0.015, origin.coordType)
         else convert(LatLng(39.9163, 116.4172, CoordType.WGS84), provider())
+
+    /** 将指定坐标转换到目标厂商原生坐标系（百度 BD09 或高德 GCJ02）。 */
+    fun convertFor(point: LatLng, targetProvider: Provider): LatLng = convert(point, targetProvider)
+
+    /** 将既有相机状态转换到目标厂商坐标系，保留中心、缩放、旋转角与俯仰角。 */
+    fun convertCamera(camera: CameraPosition, targetProvider: Provider): CameraUpdate = CameraUpdate(
+        target = convert(camera.target, targetProvider),
+        zoom = camera.zoom,
+        bearing = camera.bearing,
+        tilt = camera.tilt,
+        animated = false,
+    )
 
     /** 坐标转换失败明确抛出错误，由页面操作边界转换成失败状态。 */
     private fun convert(point: LatLng, provider: Provider): LatLng = when (val result = DefaultCoordinateConverter.convert(

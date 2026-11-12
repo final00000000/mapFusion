@@ -1,32 +1,21 @@
-// 双厂商便捷聚合包：自动注册百度和高德，适合需要运行时切换的宿主。
+// ==============================================================================
+// map-fusion-full：双厂商便捷聚合包
+// 职责：一站式聚合 :map-factory、:map-baidu 与 :map-amap，并提供 MapFusionFull.install()
+//      同时注册百度与高德适配器，适合需要运行时动态切换地图引擎的宿主直接依赖。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.full"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
     api(project(":map-factory"))
     api(project(":map-baidu"))
     api(project(":map-amap"))
-    testImplementation("junit:junit:4.13.2")
+
+    testImplementation(libs.junit)
 }

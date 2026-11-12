@@ -1,28 +1,82 @@
-import java.util.Properties
 import java.util.Locale
+import java.util.Properties
 
-// 演示 App:展示如何通过 map-factory 在百度/高德之间切换。
+// ==============================================================================
+// app：Map Fusion 演示与验收宿主应用
+// 职责：
+// 1. 演示高德与百度地图引擎在运行时的无缝动态切换及全部统一 SDK 能力。
+// 2. 提供 maps（双基础地图）、amapNavi（高德官方导航 + 双地图）、baiduNavi（百度官方导航 + 双地图）三个变体。
+// 3. 从未纳入版本控制的 local.properties 或环境变量安全注入 API Key 与可选 Release 签名。
+// ==============================================================================
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
+// 读取本地未跟踪的 local.properties，避免将真实 API Key 或签名凭据硬编码进仓库
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
+    if (file.isFile) {
+        file.inputStream().use(::load)
+    }
 }
-val baiduMapApiKey = localProperties.getProperty("BAIDU_MAP_API_KEY", "YOUR_BAIDU_API_KEY")
-val amapApiKey = localProperties.getProperty("AMAP_API_KEY", "YOUR_AMAP_API_KEY")
-// 默认匹配控制台登记的身份；并排安装需要为每个最终包名单独登记 Key。
+
+/** 按 Gradle 属性 -> 系统环境变量 -> local.properties -> 占位符的优先级解析配置项。 */
+fun resolveKey(name: String, placeholder: String): String =
+    providers.gradleProperty(name).orNull
+        ?: providers.environmentVariable(name).orNull
+        ?: localProperties.getProperty(name)
+        ?: placeholder
+
+val baiduApiKey = resolveKey("BAIDU_MAP_API_KEY", "YOUR_BAIDU_API_KEY")
+val amapApiKey = resolveKey("AMAP_API_KEY", "YOUR_AMAP_API_KEY")
+// 默认使用统一 applicationId 匹配控制台登记的包名+SHA1；若需同设备并排安装多变体，可通过此属性附加后缀
 val demoSideBySide = providers.gradleProperty("mapFusionDemoSideBySide")
     .map(String::toBoolean).getOrElse(false)
+// 是否改用已发布到 Maven 仓库的 SDK 坐标进行构建验证
 val usePublishedMapFusion = providers.gradleProperty("mapFusionUsePublishedSdk")
-    .map(String::toBoolean)
-    .getOrElse(false)
+    .map(String::toBoolean).getOrElse(false)
 val mapFusionGroup = providers.gradleProperty("mapFusionGroup").get()
 val mapFusionVersion = providers.gradleProperty("mapFusionVersion").get()
-fun String.asBuildConfigString(): String =
-    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+// 可选的自定义 Release 签名配置（未提供时回退至 debug 签名以便本地直接验证 R8 构建）
+val releaseStoreFile = providers.gradleProperty("MAP_FUSION_DEMO_STORE_FILE").orNull
+    ?: providers.environmentVariable("MAP_FUSION_DEMO_STORE_FILE").orNull
+    ?: localProperties.getProperty("MAP_FUSION_DEMO_STORE_FILE")
+val releaseStorePassword = providers.gradleProperty("MAP_FUSION_DEMO_STORE_PASSWORD").orNull
+    ?: providers.environmentVariable("MAP_FUSION_DEMO_STORE_PASSWORD").orNull
+    ?: localProperties.getProperty("MAP_FUSION_DEMO_STORE_PASSWORD")
+val releaseKeyAlias = providers.gradleProperty("MAP_FUSION_DEMO_KEY_ALIAS").orNull
+    ?: providers.environmentVariable("MAP_FUSION_DEMO_KEY_ALIAS").orNull
+    ?: localProperties.getProperty("MAP_FUSION_DEMO_KEY_ALIAS")
+val releaseKeyPassword = providers.gradleProperty("MAP_FUSION_DEMO_KEY_PASSWORD").orNull
+    ?: providers.environmentVariable("MAP_FUSION_DEMO_KEY_PASSWORD").orNull
+    ?: localProperties.getProperty("MAP_FUSION_DEMO_KEY_PASSWORD")
+val hasCustomReleaseSigning = !releaseStoreFile.isNullOrBlank() &&
+    !releaseStorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
+
+/** 将任意字符串安全转义为 Java/Kotlin BuildConfig 字符串字面量。 */
+fun String.asBuildConfigString(): String = buildString {
+    val backslash = 92.toChar()
+    val quote = 34.toChar()
+    append(quote)
+    for (ch in this@asBuildConfigString) {
+        when (ch) {
+            backslash -> {
+                append(backslash)
+                append(backslash)
+            }
+            quote -> {
+                append(backslash)
+                append(quote)
+            }
+            else -> append(ch)
+        }
+    }
+    append(quote)
+}
 
 android {
     namespace = "com.mapfusion.demo"
@@ -35,11 +89,10 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        buildConfigField("String", "BAIDU_MAP_API_KEY", baiduMapApiKey.asBuildConfigString())
-        buildConfigField("String", "AMAP_API_KEY", amapApiKey.asBuildConfigString())
-        manifestPlaceholders["BAIDU_MAP_API_KEY"] = baiduMapApiKey
+        manifestPlaceholders["BAIDU_MAP_API_KEY"] = baiduApiKey
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
+        buildConfigField("String", "BAIDU_MAP_API_KEY", baiduApiKey.asBuildConfigString())
+        buildConfigField("String", "AMAP_API_KEY", amapApiKey.asBuildConfigString())
     }
 
     buildFeatures {
@@ -48,28 +101,37 @@ android {
 
     flavorDimensions += "demoSdk"
     productFlavors {
+        // 标准双地图变体：默认变体，装载百度+高德全量基础地图能力
         create("maps") {
             dimension = "demoSdk"
+            isDefault = true
             if (demoSideBySide) applicationIdSuffix = ".maps"
             versionNameSuffix = "-maps"
         }
+        // 高德官方导航变体：装载高德官方 Navi 引擎 + 高德/百度双基础地图切换能力
         create("amapNavi") {
             dimension = "demoSdk"
             if (demoSideBySide) applicationIdSuffix = ".amapnavi"
             versionNameSuffix = "-amap-navi"
         }
+        // 百度官方导航变体：装载百度官方 Navi 引擎 + 百度/高德双基础地图切换能力
         create("baiduNavi") {
             dimension = "demoSdk"
             if (demoSideBySide) applicationIdSuffix = ".baidunavi"
             versionNameSuffix = "-baidu-navi"
-            // 百度官方 car Navi AAR 的真实最低版本。
+            // 百度 carnavi 8.0.1 AAR 的真实最低版本要求为 API 23
             minSdk = 23
+            // 百度官方导航原生库仅提供 32/64 位 ARM 架构
+            ndk {
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
         }
     }
 
+    // 支持在 local.properties 中按变体名称后缀（如 BAIDU_MAP_API_KEY_MAPS）覆盖各自 Key
     productFlavors.configureEach {
         val suffix = name.uppercase(Locale.ROOT)
-        val baiduKey = localProperties.getProperty("BAIDU_MAP_API_KEY_$suffix", baiduMapApiKey)
+        val baiduKey = localProperties.getProperty("BAIDU_MAP_API_KEY_$suffix", baiduApiKey)
         val amapKey = localProperties.getProperty("AMAP_API_KEY_$suffix", amapApiKey)
         buildConfigField("String", "BAIDU_MAP_API_KEY", baiduKey.asBuildConfigString())
         buildConfigField("String", "AMAP_API_KEY", amapKey.asBuildConfigString())
@@ -77,8 +139,25 @@ android {
         manifestPlaceholders["AMAP_API_KEY"] = amapKey
     }
 
+    signingConfigs {
+        if (hasCustomReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(requireNotNull(releaseStoreFile))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // 未配置正式证书时自动回退至 debug 签名，方便本地直接构建并运行 Release/R8 包
+            signingConfig = if (hasCustomReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -88,46 +167,22 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            // 百度 carnavi 8.0.1 含有未按 16 KB 页对齐的旧版 so，需启用传统压缩打包方式
+            useLegacyPackaging = true
+            // 百度与高德均内置同名 libc++_shared.so，通过 pickFirsts 解决双厂商同包共存冲突
+            pickFirsts += "**/libc++_shared.so"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-}
 
-// 仅导出所选版本的制品路径，不读取或输出 API Key。
-tasks.register("exportOfficialSdkArtifacts") {
-    group = "verification"
-    description = "Export the resolved official SDK artifacts for API coverage inspection"
-    val output = layout.buildDirectory.file("reports/official-api/artifacts.tsv")
-    outputs.file(output)
-    outputs.upToDateWhen { false }
-    doLast {
-        val rows = mutableListOf("variant\tcoordinate\tfile")
-        listOf("maps", "amapNavi", "baiduNavi").forEach { flavor ->
-            configurations.getByName("${flavor}DebugRuntimeClasspath").incoming.resolutionResult
-                .allComponents.mapNotNull { it.moduleVersion }
-                .filter { it.group in setOf("com.amap.api", "com.baidu.lbsyun") }
-                .sortedBy { it.toString() }
-                .forEach { module ->
-                    // 按已选定的精确版本取原制品；避免要求 Android project 输出无类型 artifact。
-                    val resolved = configurations.detachedConfiguration(dependencies.create(module.toString()))
-                        .apply { isTransitive = false }.resolvedConfiguration.resolvedArtifacts
-                    resolved.forEach { artifact ->
-                        rows += "$flavor\t$module\t${artifact.file.absolutePath}"
-                    }
-                }
-        }
-        output.get().asFile.apply { parentFile.mkdirs(); writeText(rows.joinToString("\n") + "\n") }
-    }
-}
-
-androidComponents {
-    beforeVariants(selector().all()) { variant ->
-        val demoSdk = variant.productFlavors.firstOrNull { it.first == "demoSdk" }?.second
-        if (demoSdk != null && demoSdk != "maps") {
-            // 既有真机契约同时引用两家基础适配器，只属于双地图 maps 变体。
-            variant.enableAndroidTest = false
-        }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -137,37 +192,63 @@ kotlin {
     }
 }
 
+// 导出当前解析的高德/百度官方 SDK 制品路径，供 tools/official_api_inventory.py 核对字节码签名（不输出任何 API Key）
+tasks.register("exportOfficialSdkArtifacts") {
+    group = "verification"
+    description = "导出已解析的高德与百度官方 SDK 制品路径供 API 覆盖率盘点脚本检查"
+    val output = layout.buildDirectory.file("reports/official-api/artifacts.tsv")
+    outputs.file(output)
+    outputs.upToDateWhen { false }
+    doLast {
+        val tab = 9.toChar()
+        val nl = 10.toChar().toString()
+        val rows = mutableListOf("variant${tab}coordinate${tab}file")
+        listOf("maps", "amapNavi", "baiduNavi").forEach { flavor ->
+            configurations.getByName("${flavor}DebugRuntimeClasspath").incoming.resolutionResult
+                .allComponents.mapNotNull { it.moduleVersion }
+                .filter { it.group in setOf("com.amap.api", "com.baidu.lbsyun") }
+                .sortedBy { it.toString() }
+                .forEach { module ->
+                    val resolved = configurations.detachedConfiguration(dependencies.create(module.toString()))
+                        .apply { isTransitive = false }.resolvedConfiguration.resolvedArtifacts
+                    resolved.forEach { artifact ->
+                        rows += "$flavor$tab$module$tab${artifact.file.absolutePath}"
+                    }
+                }
+        }
+        output.get().asFile.apply { parentFile.mkdirs(); writeText(rows.joinToString(nl) + nl) }
+    }
+}
+
 dependencies {
-    // Navi 变体必须保持单厂商，避免两家 libc++_shared.so 在同一 APK 中相互覆盖。
+    // 三个变体均同时装载高德与百度基础地图适配器，确保任意变体下均可运行时无缝切换双厂商地图
     if (usePublishedMapFusion) {
         add("mapsImplementation", "$mapFusionGroup:map-fusion-full:$mapFusionVersion")
         add("amapNaviImplementation", "$mapFusionGroup:map-amap-navi:$mapFusionVersion")
+        add("amapNaviImplementation", "$mapFusionGroup:map-baidu:$mapFusionVersion")
         add("baiduNaviImplementation", "$mapFusionGroup:map-baidu-navi:$mapFusionVersion")
+        add("baiduNaviImplementation", "$mapFusionGroup:map-amap:$mapFusionVersion")
     } else {
         add("mapsImplementation", project(":map-fusion-full"))
         add("amapNaviImplementation", project(":map-amap-navi"))
+        add("amapNaviImplementation", project(":map-baidu"))
         add("baiduNaviImplementation", project(":map-baidu-navi"))
+        add("baiduNaviImplementation", project(":map-amap"))
     }
 
-    // 1.19.0 要求 compileSdk 37 + AGP 9.1；当前项目工具链上限为 36 / 8.11.1。
-    //noinspection GradleDependency
-    implementation("androidx.core:core-ktx:1.17.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    // 保持 API 21 宿主兼容；页面状态依赖仅进入 Demo，不进入发布 SDK。
-    implementation("androidx.activity:activity-ktx:1.10.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.savedstate)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("androidx.arch.core:core-testing:2.2.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
 
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.test:rules:1.7.0")
-    // maps 的测试 APK 继承 minSdk 21；2.4.0 的 shell 依赖要求 23。
-    // 当前仅使用旧版 UiDevice/By/Until，锁定兼容版本，不提高业务 minSdk。
-    //noinspection GradleDependency
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }

@@ -1,5 +1,6 @@
 package com.mapfusion.demo.main
 
+import com.mapfusion.api.model.CameraUpdate
 import com.mapfusion.api.model.LocationAccuracyStyle
 import com.mapfusion.api.model.LocationDisplayEvent
 import com.mapfusion.api.model.LocationDisplayOptions
@@ -9,7 +10,6 @@ import com.mapfusion.api.model.LocationMarkerStyle
 import com.mapfusion.api.model.LocationOptions
 import com.mapfusion.api.model.MapLocation
 import com.mapfusion.api.model.MapResult
-import com.mapfusion.api.model.MarkerIcon
 import java.util.Locale
 
 /** 定位展示功能：配置连续定位并将结果写入 UiState，系统授权由宿主协调器完成。 */
@@ -17,21 +17,28 @@ internal class MainLocationFeature(
     /** Activity 绑定的地图宿主；会话守卫、请求代次与消息投递都经它完成。 */
     private val host: MainMapHost
 ) {
-    /** 开启首点跟随的连续定位；复用 Session 组件，不把定位句柄保存进 ViewModel。 */
-    fun start() = host.perform("定位") {
+    /** 开启连续定位；若为切换厂商后的自动定位且已有相机或定位，则保持当前视角不跳动；用户主动点击定位则移动相机。 */
+    fun start(followCamera: Boolean = true) = host.perform("定位") {
         val session = requireNotNull(host.session) { "地图尚未初始化" }
         val display = requireNotNull(session.locationDisplay) { "当前厂商不支持定位展示" }
         display.stop()
         val epoch = host.requests.generation
+        val existingLocation = host.viewModel.state.value.lastLocation
+        val shouldFollowFirstFix = followCamera || (existingLocation == null && host.preservedCamera == null)
+        if (followCamera && existingLocation != null) {
+            host.controller?.moveCamera(CameraUpdate(target = existingLocation.position, zoom = 17f, animated = true))
+        }
         val result = display.start(LocationDisplayOptions(
             locationOptions = LocationOptions(onceOnly = false, intervalMs = 2_000, timeoutMs = 15_000,
                 needAddress = true, useCache = true),
             style = LocationDisplayStyle(marker = LocationMarkerStyle(
-                icon = MarkerIcon.Bytes(DemoMapAssets.endpoint("我", DemoMapAssets.current)), anchorU = 0.5f,
+                icon = DemoMapAssets.locationPuckIcon, anchorU = 0.5f,
                 anchorV = 0.5f, flat = true, rotateWithBearing = true),
-                accuracy = LocationAccuracyStyle(strokeWidth = host.dp(1).toFloat(), strokeColor = DemoMapAssets.current,
-                    fillColor = 0x2231A354)),
-            followMode = LocationFollowMode.FIRST_FIX, followZoom = 17f, maxAccuracyMeters = 100f,
+                accuracy = LocationAccuracyStyle(strokeWidth = host.dp(2).toFloat(), strokeColor = DemoMapAssets.current,
+                    fillColor = 0x220D9488)),
+            followMode = if (shouldFollowFirstFix) LocationFollowMode.FIRST_FIX else LocationFollowMode.NONE,
+            followZoom = if (shouldFollowFirstFix) 17f else null,
+            maxAccuracyMeters = 100f,
             pauseWhenBackground = true)) { event -> host.deliver(epoch) {
                 if (host.session === session) handle(event)
             } }

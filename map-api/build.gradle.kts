@@ -1,30 +1,18 @@
-// 抽象层:接口 + 数据模型。做成 Android Library,因为地图控件/定位需要 Android 的
-// View、Context、生命周期等类型。不依赖任何厂商(百度/高德)SDK。
+// ==============================================================================
+// map-api：核心抽象层
+// 职责：定义厂商无关的地图控制器、定位、搜索、路线规划、导航接口与统一领域数据模型。
+// 约束：仅依赖 Android 基础视图与生命周期类型，严禁依赖高德或百度任何厂商 SDK。
+// 编译基准（compileSdk 36 / minSdk 21 / JVM 17）与 Maven 发布由根工程统一注入。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.api"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 21
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
 }

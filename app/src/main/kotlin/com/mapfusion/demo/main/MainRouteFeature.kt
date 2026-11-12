@@ -69,7 +69,7 @@ internal class MainRouteFeature(
         val navigationMode = host.viewModel.state.value.navigationMode
         val request = EmbeddedNavigationRequest(routeRequest(mode), EmbeddedNavigationOptions(
             routeOverlay = DemoMapAssets.routeOptions(), showCurrentMarker = true,
-            currentMarkerIcon = MarkerIcon.Bytes(DemoMapAssets.endpoint("我", DemoMapAssets.current)),
+            currentMarkerIcon = DemoMapAssets.locationPuckIcon,
             followLocation = true, followZoom = 17f, navigationMode = navigationMode,
             simulationSpeedMetersPerSecond = mode.simulationSpeedMetersPerSecond(), simulationIntervalMillis = 500L))
         val epoch = host.requests.generation

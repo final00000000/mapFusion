@@ -39,6 +39,8 @@ internal class OfficialNavigationWidgets(
             text = label
             isAllCaps = false
             textSize = if (style == NavigationButtonStyle.COMPACT) 12.5f else 13f
+            gravity = Gravity.CENTER
+            includeFontPadding = false
             maxLines = 1
             minWidth = 0
             minimumWidth = 0
@@ -58,7 +60,7 @@ internal class OfficialNavigationWidgets(
                     NavigationButtonStyle.STANDARD -> DemoTheme.BORDER_STRONG
                     NavigationButtonStyle.COMPACT -> DemoTheme.BORDER
                 },
-                cornerDp = if (style == NavigationButtonStyle.COMPACT) 10f else 11f,
+                cornerDp = if (style == NavigationButtonStyle.COMPACT) 11f else 12f,
             )
             setOnClickListener { action() }
             buttons.add(this)
@@ -92,8 +94,8 @@ internal class OfficialNavigationWidgets(
                 else -> DemoTheme.SURFACE_ELEVATED
             },
             pressedColor = if (segmented && selected) DemoTheme.BRAND_DARK else DemoTheme.SURFACE_PRESSED,
-            strokeColor = if (segmented) Color.TRANSPARENT else if (selected) DemoTheme.BRAND else DemoTheme.BORDER,
-            cornerDp = if (segmented) 8f else 10f,
+            strokeColor = if (segmented) Color.TRANSPARENT else if (selected) DemoTheme.BRAND_BORDER else DemoTheme.BORDER,
+            cornerDp = if (segmented) 9f else 11f,
             strokeDp = if (segmented) 0f else 1f,
         )
     }

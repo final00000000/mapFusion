@@ -50,6 +50,11 @@ class OfficialNavigationActivity : ComponentActivity() {
     /** 输入 Android 恢复状态，校验变体能力后组装页面级对象；不把原生对象放入 ViewModel。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
         connectSystemBack()
         val provider = intent.getStringExtra(EXTRA_PROVIDER)
             ?.let { value -> runCatching { Provider.valueOf(value) }.getOrNull() }

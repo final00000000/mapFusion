@@ -24,8 +24,15 @@ secrets.properties
 .env
 .env.*
 
-# Ad-hoc screenshots / UI layout dumps (may contain identity and location data)
+# Ad-hoc screenshots / UI layout dumps / debug logs (may contain identity and location data)
 /artifacts/
+*.log
+*.hprof
+*.trace
+*dump*.xml
+*window_dump*.xml
+*.tmp
+*.bak
 # Public verification artifacts belong under ignored build/reports/.
 
 # Detailed local documentation (not published)

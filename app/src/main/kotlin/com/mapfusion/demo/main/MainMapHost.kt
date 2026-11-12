@@ -9,7 +9,9 @@ import com.mapfusion.api.MapConfig
 import com.mapfusion.api.MapProvider
 import com.mapfusion.api.capability.MapController
 import com.mapfusion.api.capability.Provider
+import com.mapfusion.api.model.CameraPosition
 import com.mapfusion.api.model.CameraUpdate
+import com.mapfusion.api.model.MapLocation
 import com.mapfusion.api.model.MapResult
 import com.mapfusion.api.model.MapTouchAction
 import com.mapfusion.demo.BuildConfig
@@ -67,6 +69,9 @@ internal class MainMapHost(
     private var resumed = false
     /** 是否永久关闭；关闭后拒绝新动作与迟到投递，不可逆。 */
     private var closed = false
+    /** 最近一次有效地图相机快照；跨厂商切换时用于保持同一视野、缩放、旋转与倾斜度，杜绝闪回默认点。 */
+    var preservedCamera: CameraPosition? = null
+        private set
 
     /** 获取当前密度下的布局像素，供地图视野 padding 和定位样式使用。 */
     fun dp(value: Int): Int = (value * activity.resources.displayMetrics.density).toInt()
@@ -78,10 +83,25 @@ internal class MainMapHost(
             messages.error("地图厂商不可用", "当前 Demo 变体未装载${provider.displayName()} SDK")
             return
         }
+        val currentState = viewModel.state.value
+        if (savedState == null && session != null && currentState.preferredProvider == provider &&
+            currentState.mapPhase == MainMapPhase.READY) {
+            messages.info("${provider.displayName()}地图已就绪", "点击下方分类按钮体验统一 SDK 能力")
+            return
+        }
+        val previousCamera = controller?.let { map ->
+            runCatching { map.getCameraPosition() }.getOrNull()
+        }?.takeIf { it.target.latitude.isFinite() && it.target.longitude.isFinite() } ?: preservedCamera
+        val previousLocation: MapLocation? = currentState.lastLocation
+        preservedCamera = previousCamera
         viewModel.selectProvider(provider)
         if (!ensureConsent()) return
         if (!factoriesRegistered) { DemoOfficialNaviSdk.install(); factoriesRegistered = true }
-        releaseSession()
+        releaseSession(preserveViewport = true)
+        if (previousLocation != null) {
+            val converted = runCatching { coordinates.convertFor(previousLocation.position, provider) }.getOrNull()
+            if (converted != null) viewModel.setLocation(previousLocation.copy(position = converted))
+        }
         viewModel.setMapPhase(MainMapPhase.INITIALIZING)
         var candidate: MapFusionSession? = null
         runCatching {
@@ -94,12 +114,22 @@ internal class MainMapHost(
             val map = DemoOverlayController(created.mapController, overlays)
             if (resumed) created.onResume()
             (map.view.parent as? ViewGroup)?.removeView(map.view)
+            map.view.alpha = 0f
             container.addView(map.view, FrameLayout.LayoutParams(-1, -1))
+            map.view.animate().alpha(1f).setDuration(160L).start()
             when (val applied = DemoMapSettingsApplier.apply(map, viewModel.state.value.mapSettings)) {
                 is MapResult.Success -> viewModel.applyMapSettings(applied.data)
                 is MapResult.Failure -> error("地图设置恢复失败：${applied.error.message}")
             }
-            if (savedState == null) map.moveCamera(CameraUpdate(target = coordinates.defaultPoint(provider), zoom = 14f, animated = false))
+            if (savedState == null) {
+                val initialCamera = when {
+                    previousCamera != null -> coordinates.convertCamera(previousCamera, provider)
+                    viewModel.state.value.lastLocation != null -> CameraUpdate(
+                        target = coordinates.center(), zoom = 17f, animated = false)
+                    else -> CameraUpdate(target = coordinates.defaultPoint(provider), zoom = 14f, animated = false)
+                }
+                map.moveCamera(initialCamera)
+            }
             this.provider = created.provider; controller = map; session = created
             bindInteractions(map)
             viewModel.setMapPhase(MainMapPhase.READY, created.provider.capabilities().size)
@@ -118,8 +148,9 @@ internal class MainMapHost(
     }
 
     /** 先使全部旧回调失效，再释放组件与会话；任何单个清理异常不跳过后续释放。 */
-    fun releaseSession() {
+    fun releaseSession(preserveViewport: Boolean = false) {
         requests.invalidateSession()
+        if (!preserveViewport) preservedCamera = null
         val previous = session
         session = null; controller = null; provider = null
         viewModel.resetSessionState()
@@ -176,6 +207,11 @@ internal class MainMapHost(
     /** 给当前会话绑定地图交互反馈，全部回调经过同一会话守卫。 */
     private fun bindInteractions(map: MapController) {
         val epoch = requests.generation
+        map.setOnCameraIdleListener { camera -> deliver(epoch) {
+            if (camera.target.latitude.isFinite() && camera.target.longitude.isFinite()) {
+                preservedCamera = camera
+            }
+        } }
         map.setOnMapPoiClickListener { poi -> deliver(epoch) {
             messages.success(poi.name ?: "底图 POI", "id=${poi.id ?: "-"} · ${poi.position.latitude}, ${poi.position.longitude}")
         } }

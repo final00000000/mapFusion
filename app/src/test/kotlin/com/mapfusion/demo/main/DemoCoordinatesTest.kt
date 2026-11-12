@@ -41,4 +41,21 @@ class DemoCoordinatesTest {
         provider = Provider.AMAP
         assertEquals(CoordType.GCJ02, coordinates.center().coordType)
     }
+
+    /** 跨厂商切换相机时保留缩放、朝向与俯仰角，并将坐标转换到目标厂商坐标系。 */
+    @Test fun convert_camera_preserves_zoom_bearing_and_tilt_across_providers() {
+        val coordinates = DemoCoordinates({ Provider.AMAP }, { null })
+        val baiduCamera = com.mapfusion.api.model.CameraPosition(
+            target = LatLng(39.915, 116.404, CoordType.BD09),
+            zoom = 16.5f,
+            bearing = 42f,
+            tilt = 28f,
+        )
+        val converted = coordinates.convertCamera(baiduCamera, Provider.AMAP)
+        assertEquals(CoordType.GCJ02, converted.target?.coordType)
+        assertEquals(16.5f, converted.zoom ?: 0f, 0.001f)
+        assertEquals(42f, converted.bearing ?: 0f, 0.001f)
+        assertEquals(28f, converted.tilt ?: 0f, 0.001f)
+        assertFalse(converted.animated)
+    }
 }

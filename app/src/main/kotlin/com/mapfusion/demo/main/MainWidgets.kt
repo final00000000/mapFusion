@@ -3,6 +3,7 @@ package com.mapfusion.demo.main
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -24,7 +25,7 @@ internal class MainWidgets(
     /** 创建弹窗分节标题，统一字体与边距。 */
     fun label(text: String): TextView = TextView(context).apply {
         this.text = text; textSize = 11.5f; typeface = Typeface.DEFAULT_BOLD
-        setTextColor(DemoTheme.TEXT_MUTED); setPadding(dp(2), dp(8), dp(2), dp(2))
+        setTextColor(DemoTheme.TEXT_MUTED); setPadding(dp(2), dp(8), dp(2), dp(4))
     }
 
     /** 根据值列表创建选择器；选项位置限定在列表内，避免恢复非法下标。 */
@@ -33,14 +34,14 @@ internal class MainWidgets(
             it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
         setSelection(selected.coerceIn(0, (items.size - 1).coerceAtLeast(0)))
-        background = DemoTheme.roundedRect(context, DemoTheme.SURFACE, DemoTheme.BORDER_STRONG)
-        setPadding(dp(10), 0, dp(10), 0)
+        background = DemoTheme.roundedRect(context, DemoTheme.SURFACE, DemoTheme.BORDER_STRONG, 11f)
+        setPadding(dp(12), 0, dp(12), 0)
     }
 
     /** 仅把开关变化交给草稿回调，不直接提交业务状态或调用 SDK。 */
     @Suppress("UseSwitchCompatOrMaterialCode")
     fun toggle(text: String, checked: Boolean, onChanged: (Boolean) -> Unit): Switch = Switch(context).apply {
-        this.text = text; isChecked = checked; textSize = 14f
+        this.text = text; isChecked = checked; textSize = 13.5f
         setTextColor(DemoTheme.TEXT_PRIMARY); setPadding(dp(4), 0, dp(4), 0)
         setOnCheckedChangeListener { _, value -> onChanged(value) }
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42))
@@ -49,11 +50,12 @@ internal class MainWidgets(
     /** 创建紧凑按钮，取消系统最小高度，避免工具卡片挤占地图空间。 */
     fun button(text: String, onClick: () -> Unit): Button = Button(context).apply {
         this.text = text; isAllCaps = false; textSize = 12.5f
+        gravity = Gravity.CENTER; includeFontPadding = false
         minWidth = 0; minimumWidth = 0; minHeight = 0; minimumHeight = 0
         stateListAnimator = null; setPadding(dp(6), 0, dp(6), 0)
         setTextColor(DemoTheme.TEXT_PRIMARY)
         background = DemoTheme.interactiveSurface(context, DemoTheme.SURFACE_ELEVATED,
-            DemoTheme.SURFACE_PRESSED, DemoTheme.BORDER, 10f)
+            DemoTheme.SURFACE_PRESSED, DemoTheme.BORDER, 11f)
         setOnClickListener { onClick() }
     }
 
@@ -64,7 +66,7 @@ internal class MainWidgets(
         button.background = DemoTheme.interactiveSurface(context,
             if (selected) DemoTheme.BRAND else Color.TRANSPARENT,
             if (selected) DemoTheme.BRAND_DARK else DemoTheme.SURFACE_PRESSED,
-            Color.TRANSPARENT, if (category) 9f else 8f, 0f)
+            Color.TRANSPARENT, if (category) 10f else 9f, 0f)
     }
 
     /** 将弹窗操作排列成可横向滚动行，保持小屏与横屏上的全部操作可达。 */
@@ -73,10 +75,18 @@ internal class MainWidgets(
         addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             actions.forEachIndexed { index, (label, action) ->
-                addView(button(label, action).apply { minWidth = dp(82); setPadding(dp(14), 0, dp(14), 0) },
-                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply {
-                        if (index > 0) marginStart = dp(8)
-                    })
+                val isStop = label.contains("停止")
+                addView(button(label, action).apply {
+                    minWidth = dp(86); setPadding(dp(14), 0, dp(14), 0)
+                    typeface = Typeface.DEFAULT_BOLD
+                    if (isStop) {
+                        setTextColor(DemoTheme.ERROR)
+                        background = DemoTheme.interactiveSurface(context, DemoTheme.ERROR_SOFT,
+                            DemoTheme.SURFACE_PRESSED, DemoTheme.ERROR_BORDER, 11f)
+                    }
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply {
+                    if (index > 0) marginStart = dp(8)
+                })
             }
         })
     }

@@ -1,22 +1,17 @@
+// ==============================================================================
+// map-amap-navi：高德官方 App 内导航扩展模块
+// 职责：封装高德 AMapNaviView 与 AMapNavi 实时/模拟导航能力，并复用 :map-amap 的基础地图适配器。
+// 依赖冲突处理：
+// - 排除 :map-amap 中的基础 3dmap-location-search 包，统一替换为包含导航引擎的
+//   navi-3dmap-location-search 合包，防止重复类打包冲突。
+// ==============================================================================
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.mapfusion.amap.navi"
-    compileSdk = 36
-
-    defaultConfig { minSdk = 21 }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
 dependencies {
@@ -25,7 +20,8 @@ dependencies {
     api(project(":map-amap")) {
         exclude(group = "com.amap.api", module = "3dmap-location-search")
     }
-    api("com.amap.api:navi-3dmap-location-search:11.2.000_3dmap11.2.000_loc11.2.000_sea9.8.0")
-    runtimeOnly("net.jafama:jafama:2.3.2")
-    testImplementation("junit:junit:4.13.2")
+    api(libs.amap.navi.map.location.search)
+    runtimeOnly(libs.jafama)
+
+    testImplementation(libs.junit)
 }

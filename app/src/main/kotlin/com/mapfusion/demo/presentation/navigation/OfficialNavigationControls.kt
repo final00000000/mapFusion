@@ -14,8 +14,8 @@ import com.mapfusion.api.model.OfficialNavigationCapabilities
 import com.mapfusion.api.model.OfficialNavigationFeature
 import com.mapfusion.api.model.OfficialNavigationMode
 import com.mapfusion.demo.DemoTheme
-import com.mapfusion.demo.StatusTone
 import com.mapfusion.demo.R
+import com.mapfusion.demo.StatusTone
 
 /** 仅构造导航控制面板并发出意图；能力决定控件是否存在，状态/可用性由独立渲染器处理。 */
 internal class OfficialNavigationControls(
@@ -30,23 +30,26 @@ internal class OfficialNavigationControls(
     /** 向 Page 发出值类型意图的回调，不直接调用 SDK；滑条仅发送用户变化和松手意图。 */
     private val emit: (OfficialNavigationAction) -> Unit,
 ) : AutoCloseable {
-    /** 构造详情、模式、出行、速度、高级控制与四个操作按钮，保留原页全部功能。 */
+    /** 构造悬浮卡片面板，包含详情、模式、出行、速度、高级控制与四个操作按钮。 */
     fun build(): View = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
+        isClickable = true
+        isFocusable = true
+        setOnTouchListener { _, _ -> true }
         setPadding(dp(14), dp(8), dp(14), dp(12))
-        background = DemoTheme.topSheetBackground(context, DemoTheme.SURFACE, DemoTheme.BORDER, 20f)
-        elevation = dp(8).toFloat()
+        background = DemoTheme.floatingCardBackground(context, DemoTheme.SURFACE_GLASS, DemoTheme.BORDER, 22f)
+        elevation = dp(12).toFloat()
         addView(DemoTheme.buildSheetHandle(context), LinearLayout.LayoutParams(-1, dp(10)).apply { bottomMargin = dp(4) })
         views.detail = TextView(context).apply {
             text = "等待开始"
-            textSize = 13f
+            textSize = 12.5f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(DemoTheme.TEXT_PRIMARY)
             maxLines = 2
             minHeight = dp(40)
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = DemoTheme.roundedRect(context, StatusTone.INFO.cardBgColor, StatusTone.INFO.cardBorderColor, 11f)
+            background = DemoTheme.roundedRect(context, StatusTone.INFO.cardBgColor, StatusTone.INFO.cardBorderColor, 13f)
             includeFontPadding = false
         }
         addView(views.detail, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(4) })
@@ -156,7 +159,7 @@ internal class OfficialNavigationControls(
                 gravity = Gravity.CENTER_VERTICAL
                 if (segmented) {
                     setPadding(dp(3), dp(3), dp(3), dp(3))
-                    background = DemoTheme.roundedRect(context, DemoTheme.SURFACE_SUBTLE, DemoTheme.BORDER, 11f)
+                    background = DemoTheme.roundedRect(context, DemoTheme.SURFACE_SUBTLE, DemoTheme.BORDER, 12f)
                 }
             }
             val weighted = buttons.size <= 4
